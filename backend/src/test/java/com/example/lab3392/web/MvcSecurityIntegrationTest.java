@@ -354,6 +354,66 @@ class MvcSecurityIntegrationTest extends DbTestSupport {
         assertThat(r2.getResponse().getContentAsString()).contains("价格区间请输入数字");
     }
 
+    @Test
+    void login_disabledUser_showsDisabledMessage() throws Exception {
+        Role userRole = ensureRole("USER", "普通用户");
+
+        User u = new User();
+        u.setUsername("disabled");
+        u.setEmail("disabled@example.com");
+        u.setEnabled(0);
+        u.setPasswordHash(passwordEncoder.encode("123456"));
+        userMapper.insert(u);
+        ensureUserRole(u.getId(), userRole.getId());
+
+        mockMvc.perform(post("/login").with(csrf())
+                        .param("username", "disabled")
+                        .param("password", "123456"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login?disabled"));
+
+        MvcResult result = mockMvc.perform(get("/login?disabled"))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).contains("账号已被禁用，请联系管理员。");
+    }
+
+    @Test
+    void login_badCredentials_showsGenericError_notLeakingExistence() throws Exception {
+        mockMvc.perform(post("/login").with(csrf())
+                        .param("username", "nonexistent")
+                        .param("password", "wrongpass"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login?error"));
+
+        MvcResult result1 = mockMvc.perform(get("/login?error"))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertThat(result1.getResponse().getContentAsString()).contains("用户名或密码错误，请重试。");
+        assertThat(result1.getResponse().getContentAsString()).doesNotContain("账号已被禁用");
+
+        Role userRole = ensureRole("USER", "普通用户");
+        User u = new User();
+        u.setUsername("existing");
+        u.setEmail("existing@example.com");
+        u.setEnabled(1);
+        u.setPasswordHash(passwordEncoder.encode("correctpass"));
+        userMapper.insert(u);
+        ensureUserRole(u.getId(), userRole.getId());
+
+        mockMvc.perform(post("/login").with(csrf())
+                        .param("username", "existing")
+                        .param("password", "wrongpass"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login?error"));
+
+        MvcResult result2 = mockMvc.perform(get("/login?error"))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertThat(result2.getResponse().getContentAsString()).contains("用户名或密码错误，请重试。");
+        assertThat(result2.getResponse().getContentAsString()).doesNotContain("账号已被禁用");
+    }
+
     private static int countOccurrences(String s, String needle) {
         int count = 0;
         int idx = 0;

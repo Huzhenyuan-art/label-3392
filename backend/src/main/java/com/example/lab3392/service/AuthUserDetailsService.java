@@ -14,6 +14,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -21,18 +22,26 @@ public class AuthUserDetailsService implements UserDetailsService {
     private final UserMapper userMapper;
     private final UserRoleMapper userRoleMapper;
     private final RoleMapper roleMapper;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthUserDetailsService(UserMapper userMapper, UserRoleMapper userRoleMapper, RoleMapper roleMapper) {
+    public AuthUserDetailsService(UserMapper userMapper, UserRoleMapper userRoleMapper, RoleMapper roleMapper,
+            PasswordEncoder passwordEncoder) {
         this.userMapper = userMapper;
         this.userRoleMapper = userRoleMapper;
         this.roleMapper = roleMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User u = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
-        if (u == null) throw new UsernameNotFoundException("User not found");
-        if (u.getEnabled() == null || u.getEnabled() != 1) throw new UsernameNotFoundException("User disabled");
+        if (u == null) {
+            return org.springframework.security.core.userdetails.User.builder()
+                    .username(username)
+                    .password(passwordEncoder.encode("__non_existent_user_password__"))
+                    .authorities(new ArrayList<>())
+                    .build();
+        }
 
         List<UserRole> urs = userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>().eq(UserRole::getUserId, u.getId()));
         List<GrantedAuthority> auth = new ArrayList<>();
@@ -41,10 +50,12 @@ public class AuthUserDetailsService implements UserDetailsService {
             if (r != null && r.getCode() != null) auth.add(new SimpleGrantedAuthority("ROLE_" + r.getCode()));
         }
 
+        boolean enabled = (u.getEnabled() != null && u.getEnabled() == 1);
         return org.springframework.security.core.userdetails.User.builder()
                 .username(u.getUsername())
                 .password(u.getPasswordHash())
                 .authorities(auth)
+                .disabled(!enabled)
                 .build();
     }
 }

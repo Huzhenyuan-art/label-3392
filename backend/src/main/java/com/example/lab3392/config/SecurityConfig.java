@@ -2,15 +2,22 @@ package com.example.lab3392.config;
 
 import com.example.lab3392.service.AuthUserDetailsService;
 import jakarta.servlet.http.Cookie;
+import java.io.IOException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @Configuration
 @EnableMethodSecurity
@@ -31,8 +38,6 @@ public class SecurityConfig {
                 .formLogin(form -> form
                         .loginPage("/login")
                         .successHandler((request, response, authentication) -> {
-                            // If user does NOT check remember-me, clear any existing remember-me cookie
-                            // to avoid "still remembered" from a previous login.
                             if (request.getParameter("remember-me") == null) {
                                 Cookie c = new Cookie("remember-me", "");
                                 c.setMaxAge(0);
@@ -44,6 +49,25 @@ public class SecurityConfig {
                             SimpleUrlAuthenticationSuccessHandler handler = new SimpleUrlAuthenticationSuccessHandler("/products");
                             handler.setAlwaysUseDefaultTargetUrl(true);
                             handler.onAuthenticationSuccess(request, response, authentication);
+                        })
+                        .failureHandler(new AuthenticationFailureHandler() {
+                            @Override
+                            public void onAuthenticationFailure(jakarta.servlet.http.HttpServletRequest request,
+                                    jakarta.servlet.http.HttpServletResponse response, AuthenticationException exception)
+                                    throws IOException, jakarta.servlet.ServletException {
+                                String baseUrl = "/login";
+                                String redirectUrl;
+                                if (exception instanceof DisabledException) {
+                                    redirectUrl = UriComponentsBuilder.fromPath(baseUrl)
+                                            .queryParam("disabled")
+                                            .toUriString();
+                                } else {
+                                    redirectUrl = UriComponentsBuilder.fromPath(baseUrl)
+                                            .queryParam("error")
+                                            .toUriString();
+                                }
+                                response.sendRedirect(request.getContextPath() + redirectUrl);
+                            }
                         })
                         .permitAll()
                 )
