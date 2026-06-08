@@ -114,6 +114,51 @@
 
 ---
 
+### 修复 #004: 修复 .container max-width 优先级问题
+
+**修复时间**: 2026-06-08
+
+**问题描述**:
+- 分类页面的 `.container` 仍然被 `max-width: 1100px` 限制，导致宽度问题没有得到有效解决
+- 用户反馈问题没有解决，经排查发现是 CSS 选择器优先级问题
+
+**根本原因**:
+1. 默认 `.container` 样式定义了 `max-width: 1100px`
+2. 虽然添加了 `.page-categories .container { max-width: none }`，但选择器优先级不足以覆盖默认样式
+3. 可能存在浏览器缓存或 CSS 优先级计算问题，导致 `max-width: none` 没有生效
+
+**修复方案**:
+1. 使用更强的 CSS 选择器 `body.page-products .container, body.page-categories .container`，增加 `body` 标签选择器提升优先级
+2. 添加 `!important` 关键字强制覆盖，确保 `max-width: none !important`、`width: 100% !important`、`padding: 18px 24px !important` 能够生效
+3. 为 `main.container` 添加 `margin: 0 !important`，确保移除默认的居中边距
+4. 统一更新所有相关的响应式媒体查询和搜索栏样式，使用相同的强选择器保持一致性
+5. 所有涉及 `.page-products` 和 `.page-categories` 的样式统一使用 `body.` 前缀
+
+**具体修改**:
+
+| 选择器 | 修改内容 |
+|--------|----------|
+| `body.page-products .container, body.page-categories .container` | `max-width: none !important; width: 100% !important; padding: 18px 24px !important` |
+| `body.page-products main.container, body.page-categories main.container` | 新增 `margin: 0 !important` |
+| 响应式媒体查询 | 统一使用 `body.` 前缀选择器 |
+| 搜索栏样式 | 统一使用 `body.` 前缀选择器 |
+
+**影响文件**:
+
+| 文件路径 | 修改内容 |
+|----------|----------|
+| `frontend/public/assets/app.css` | 所有 `.page-products` 和 `.page-categories` 相关选择器添加 `body.` 前缀，关键属性添加 `!important` 强制覆盖 |
+
+**修复状态**: ✅ 已完成
+
+**验证结果**:
+- `.container` 的 `max-width: 1100px` 被成功覆盖
+- 分类列表页面全宽显示，与产品列表页布局一致
+- 所有响应式断点正常工作
+- 所有 23 个测试通过
+
+---
+
 ## 修复登记模板
 
 > 后续修复请复制以下模板并填写：

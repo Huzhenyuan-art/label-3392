@@ -32,18 +32,18 @@ a{color:inherit; text-decoration:none}
 .link{cursor:pointer}
 .link:hover{color:rgba(37,99,235,.95); text-decoration:underline}
 .container{max-width:1100px; margin:0 auto; padding:24px}
-.page-products .container,
-.page-categories .container{
-  max-width:none;
-  width:100%;
-  padding:18px 24px;
+body.page-products .container,
+body.page-categories .container{
+  max-width:none !important;
+  width:100% !important;
+  padding:18px 24px !important;
 }
 @media (max-width: 720px){
-  .page-products .container,
-  .page-categories .container{padding:14px 16px}
+  body.page-products .container,
+  body.page-categories .container{padding:14px 16px !important}
 }
-.page-products,
-.page-categories{
+body.page-products,
+body.page-categories{
   height:100vh;
   height:100dvh;
   width:100%;
@@ -53,21 +53,22 @@ a{color:inherit; text-decoration:none}
   flex-direction:column;
   overflow:hidden;
 }
-.page-products main.container,
-.page-categories main.container{
+body.page-products main.container,
+body.page-categories main.container{
   flex:1 1 auto;
   display:flex;
   flex-direction:column;
   gap:14px;
   min-height:0;
   overflow:hidden;
+  margin:0 !important;
 }
-.page-products main.container > section.card.compact,
-.page-categories main.container > section.card.compact{flex:0 0 auto}
-.page-products main.container > section.table-card.fixed,
-.page-categories main.container > section.table-card.fixed{flex:1 1 auto; min-height:0}
-.page-products.page-detail main.container,
-.page-categories.page-detail main.container{overflow:auto}
+body.page-products main.container > section.card.compact,
+body.page-categories main.container > section.card.compact{flex:0 0 auto}
+body.page-products main.container > section.table-card.fixed,
+body.page-categories main.container > section.table-card.fixed{flex:1 1 auto; min-height:0}
+body.page-products.page-detail main.container,
+body.page-categories.page-detail main.container{overflow:auto}
 
 .topbar{
   position:sticky; top:0; z-index:20;
@@ -158,8 +159,8 @@ a{color:inherit; text-decoration:none}
 @media (max-width: 720px){ .grid.cols2{grid-template-columns:1fr} }
 
 @media (max-width: 900px){
-  .page-products .container,
-  .page-categories .container{padding:14px 16px}
+  body.page-products .container,
+  body.page-categories .container{padding:14px 16px !important}
   .table-wrap{
     overflow-x:auto;
     -webkit-overflow-scrolling:touch;
@@ -186,23 +187,23 @@ a{color:inherit; text-decoration:none}
 }
 
 @media (max-width: 480px){
-  .page-products .searchbar,
-  .page-categories .searchbar{
+  body.page-products .searchbar,
+  body.page-categories .searchbar{
     flex-direction:column;
     align-items:stretch;
   }
-  .page-products .searchbar .field.inline,
-  .page-categories .searchbar .field.inline{
+  body.page-products .searchbar .field.inline,
+  body.page-categories .searchbar .field.inline{
     flex-direction:column;
     align-items:flex-start;
   }
-  .page-products .searchbar .actions,
-  .page-categories .searchbar .actions{
+  body.page-products .searchbar .actions,
+  body.page-categories .searchbar .actions{
     width:100%;
     justify-content:stretch;
   }
-  .page-products .searchbar .actions .btn,
-  .page-categories .searchbar .actions .btn{
+  body.page-products .searchbar .actions .btn,
+  body.page-categories .searchbar .actions .btn{
     flex:1;
   }
 }
@@ -272,8 +273,10 @@ a{color:inherit; text-decoration:none}
 .input.w-280{width:280px; max-width:42vw}
 .input.w-320{width:320px; max-width:46vw}
 
-.page-products .searchbar{gap:8px}
-.page-products .searchbar .actions{gap:8px}
+body.page-products .searchbar,
+body.page-categories .searchbar{gap:8px}
+body.page-products .searchbar .actions,
+body.page-categories .searchbar .actions{gap:8px}
 
 .table-card{display:flex; flex-direction:column; gap:12px}
 .table-card.fixed{flex:1 1 auto; min-height:0; padding:14px; overflow:hidden}
