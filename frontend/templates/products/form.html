@@ -12,6 +12,7 @@
       <div class="inner">
         <a class="brand" href="/products"><span class="dot"></span><span th:text="${mode} == 'edit' ? '编辑产品' : '新增产品'">产品</span></a>
         <nav class="nav">
+          <a class="btn" href="/categories">产品分类</a>
           <a class="btn" href="/products">返回列表</a>
           <form method="post" action="/logout">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />

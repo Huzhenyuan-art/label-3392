@@ -12,6 +12,7 @@
       <div class="inner">
         <a class="brand" href="/"><span class="dot"></span><span>产品管理</span></a>
         <nav class="nav">
+          <a class="btn" href="/categories">产品分类</a>
           <div class="pill" th:if="${#authorization.expression('isAuthenticated()')}">
             <span class="spark"></span><span th:text="'当前用户：' + ${username}">当前用户</span>
           </div>
