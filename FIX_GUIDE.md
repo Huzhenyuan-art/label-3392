@@ -38,6 +38,40 @@
 
 ---
 
+### 修复 #002: 分类列表列重叠 + 状态图标混淆
+
+**修复时间**: 2026-06-08
+
+**问题描述**:
+- 分类列表编码列和状态列重叠，导致显示混乱
+- 状态「启用」和「停用」图标都是相同的紫色圆点，容易混淆（产品列表也有同样问题）
+
+**根本原因**:
+- CSS 中缺少 `.col-code` 和 `.col-sort` 的列宽定义，导致分类列表的编码列和排序列没有固定宽度
+- 状态 pill 的 `.spark` 图标没有根据状态区分颜色，启用和停用都使用相同的紫色渐变
+
+**修复方案**:
+- 在 CSS 中添加 `.col-code` (140px) 和 `.col-sort` (90px) 的列宽定义
+- 添加 `.status-active` 和 `.status-inactive` 样式类，分别使用绿色和灰色区分状态
+- 在分类列表和产品列表的状态 pill 中使用 `th:classappend` 动态添加状态类名
+
+**影响文件**:
+
+| 文件路径 | 修改内容 |
+|----------|----------|
+| `frontend/public/assets/app.css` | 添加 `.col-code`、`.col-sort` 列宽；添加 `.status-active`、`.status-inactive` 状态样式 |
+| `frontend/templates/categories/list.html` | 状态 pill 动态添加 `status-active`/`status-inactive` 类 |
+| `frontend/templates/products/list.html` | 状态 pill 动态添加 `status-active`/`status-inactive` 类 |
+
+**修复状态**: ✅ 已完成
+
+**验证结果**:
+- 分类列表列宽正常，不再重叠
+- 启用状态显示绿色圆点 + 绿色边框背景，停用状态显示灰色圆点 + 灰色边框背景
+- 所有测试通过
+
+---
+
 ## 修复登记模板
 
 > 后续修复请复制以下模板并填写：

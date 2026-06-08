@@ -86,7 +86,7 @@
                 <td class="col-price" th:text="${p.price}">0</td>
                 <td class="col-stock" th:text="${p.stock}">0</td>
                 <td class="col-status">
-                  <span class="pill"><span class="spark"></span><span th:text="${p.status == 'ACTIVE' ? '启用' : (p.status == 'INACTIVE' ? '停用' : p.status)}">启用</span></span>
+                  <span class="pill" th:classappend="${p.status == 'ACTIVE' ? 'status-active' : 'status-inactive'}"><span class="spark"></span><span th:text="${p.status == 'ACTIVE' ? '启用' : (p.status == 'INACTIVE' ? '停用' : p.status)}">启用</span></span>
                 </td>
                 <td class="col-updated" th:text="${#temporals.format(p.updatedAt, 'yyyy-MM-dd HH:mm')}">time</td>
                 <td class="col-actions">

@@ -81,7 +81,7 @@
                 <td class="col-code" th:text="${c.code}">CODE</td>
                 <td class="col-sort" th:text="${c.sortOrder}">0</td>
                 <td class="col-status">
-                  <span class="pill"><span class="spark"></span><span th:text="${c.status == 'ACTIVE' ? '启用' : (c.status == 'INACTIVE' ? '停用' : c.status)}">启用</span></span>
+                  <span class="pill" th:classappend="${c.status == 'ACTIVE' ? 'status-active' : 'status-inactive'}"><span class="spark"></span><span th:text="${c.status == 'ACTIVE' ? '启用' : (c.status == 'INACTIVE' ? '停用' : c.status)}">启用</span></span>
                 </td>
                 <td class="col-updated" th:text="${#temporals.format(c.updatedAt, 'yyyy-MM-dd HH:mm')}">time</td>
                 <td class="col-actions">

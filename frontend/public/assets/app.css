@@ -239,6 +239,8 @@ tr:hover td{background:rgba(255,255,255,.62)}
 .table-wrap table{table-layout:fixed}
 .col-id{width:84px; max-width:84px}
 .col-name{width:420px; max-width:420px}
+.col-code{width:140px; max-width:140px}
+.col-sort{width:90px; max-width:90px}
 .col-price{width:120px; max-width:120px}
 .col-stock{width:110px; max-width:110px}
 .col-status{width:140px; max-width:140px}
@@ -279,6 +281,16 @@ td.col-actions{overflow:visible}
   background:linear-gradient(135deg, var(--brand0), var(--brand1));
   box-shadow:0 0 0 5px var(--glow);
 }
+.pill.status-active .spark{
+  background:linear-gradient(135deg, var(--ok), #22c55e);
+  box-shadow:0 0 0 5px rgba(34,197,94,.18);
+}
+.pill.status-inactive .spark{
+  background:linear-gradient(135deg, #6b7280, #9ca3af);
+  box-shadow:0 0 0 5px rgba(107,114,128,.18);
+}
+.pill.status-active{border-color:rgba(22,163,74,.28); background:rgba(22,163,74,.06)}
+.pill.status-inactive{border-color:rgba(107,114,128,.28); background:rgba(107,114,128,.06)}
 
 .kv{display:grid; gap:10px}
 .kv-row{
