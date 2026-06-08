@@ -74,7 +74,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    @Cacheable(cacheNames = "productPagesV4",
+    @Cacheable(cacheNames = "productPagesV5",
             key = "(#q.normalizedName()?:'') + '|' + (#q.minPrice()?:'') + '|' + (#q.maxPrice()?:'') + '|' + #page + '|' + #size")
     public IPage<Product> search(ProductQuery q, long page, long size) {
         String name = q.normalizedName();
@@ -119,7 +119,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    @CacheEvict(cacheNames = {"productPagesV4", "productPagesV3", "productPagesV2", "productPages"}, allEntries = true)
+    @CacheEvict(cacheNames = {"productPagesV5", "productPagesV4", "productPagesV3", "productPagesV2", "productPages"}, allEntries = true)
     public Product create(ProductForm form) {
         validateCategory(form.categoryId());
         Product p = new Product();
@@ -134,7 +134,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    @CacheEvict(cacheNames = {"productPagesV4", "productPagesV3", "productPagesV2", "productPages"}, allEntries = true)
+    @CacheEvict(cacheNames = {"productPagesV5", "productPagesV4", "productPagesV3", "productPagesV2", "productPages"}, allEntries = true)
     public void update(Long id, ProductForm form) {
         Product existing = getByIdOrThrow(id);
         validateCategory(form.categoryId());
@@ -148,7 +148,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    @CacheEvict(cacheNames = {"productPagesV4", "productPagesV3", "productPagesV2", "productPages"}, allEntries = true)
+    @CacheEvict(cacheNames = {"productPagesV5", "productPagesV4", "productPagesV3", "productPagesV2", "productPages"}, allEntries = true)
     public void delete(Long id) {
         Product existing = productMapper.selectById(id);
         if (existing == null) return;

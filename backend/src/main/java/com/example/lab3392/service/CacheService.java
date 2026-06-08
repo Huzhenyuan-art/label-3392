@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 public class CacheService {
     private final CacheManager cacheManager;
     private static final String[] PRODUCT_CACHE_NAMES = {
-            "productPagesV4", "productPagesV3", "productPagesV2", "productPages"
+            "productPagesV5", "productPagesV4", "productPagesV3", "productPagesV2", "productPages"
     };
 
     public CacheService(CacheManager cacheManager) {

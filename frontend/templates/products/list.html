@@ -56,6 +56,15 @@
             <div class="err-inline" data-role="price-error" th:if="${priceError}" th:text="${priceError}">价格区间错误</div>
           </div>
 
+          <div class="field inline">
+            <div class="label">每页条数</div>
+            <select class="input sm" name="pageSize" id="pageSizeSelect">
+              <option value="10" th:selected="${pageSize == 10}">10 条/页</option>
+              <option value="20" th:selected="${pageSize == 20}">20 条/页</option>
+              <option value="50" th:selected="${pageSize == 50}">50 条/页</option>
+            </select>
+          </div>
+
           <div class="actions">
             <button class="btn primary" type="submit">查询</button>
             <a class="btn" href="/products">重置</a>
@@ -118,10 +127,10 @@
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
           <div class="hint" th:text="'共 ' + ${page.total} + ' 条，当前第 ' + (${page.current}) + ' / ' + ${page.pages} + ' 页'">分页</div>
           <div style="display:flex; gap:8px; flex-wrap:wrap">
-            <a class="btn" th:href="@{/products(name=${nameRaw},minPrice=${minPriceRaw},maxPrice=${maxPriceRaw},page=1)}">首页</a>
-            <a class="btn" th:if="${page.current > 1}" th:href="@{/products(name=${nameRaw},minPrice=${minPriceRaw},maxPrice=${maxPriceRaw},page=${page.current - 1})}">上一页</a>
-            <a class="btn" th:if="${page.current < page.pages}" th:href="@{/products(name=${nameRaw},minPrice=${minPriceRaw},maxPrice=${maxPriceRaw},page=${page.current + 1})}">下一页</a>
-            <a class="btn" th:href="@{/products(name=${nameRaw},minPrice=${minPriceRaw},maxPrice=${maxPriceRaw},page=${page.pages})}">末页</a>
+            <a class="btn" th:href="@{/products(name=${nameRaw},minPrice=${minPriceRaw},maxPrice=${maxPriceRaw},pageSize=${pageSize},page=1)}">首页</a>
+            <a class="btn" th:if="${page.current > 1}" th:href="@{/products(name=${nameRaw},minPrice=${minPriceRaw},maxPrice=${maxPriceRaw},pageSize=${pageSize},page=${page.current - 1})}">上一页</a>
+            <a class="btn" th:if="${page.current < page.pages}" th:href="@{/products(name=${nameRaw},minPrice=${minPriceRaw},maxPrice=${maxPriceRaw},pageSize=${pageSize},page=${page.current + 1})}">下一页</a>
+            <a class="btn" th:href="@{/products(name=${nameRaw},minPrice=${minPriceRaw},maxPrice=${maxPriceRaw},pageSize=${pageSize},page=${page.pages})}">末页</a>
           </div>
         </div>
       </section>

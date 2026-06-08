@@ -50,6 +50,7 @@ public class ProductController {
             @RequestParam(required = false) String minPrice,
             @RequestParam(required = false) String maxPrice,
             @RequestParam(defaultValue = "1") long page,
+            @RequestParam(defaultValue = "10") long pageSize,
             Model model,
             Principal principal
     ) {
@@ -76,15 +77,18 @@ public class ProductController {
             }
         }
 
+        long safePageSize = (pageSize == 10 || pageSize == 20 || pageSize == 50) ? pageSize : 10;
+
         ProductQuery q = new ProductQuery(name, priceError == null ? minVal : null, priceError == null ? maxVal : null);
         model.addAttribute("q", q);
         long safePage = priceError == null ? page : 1;
-        model.addAttribute("page", productService.search(q, safePage, 10));
+        model.addAttribute("page", productService.search(q, safePage, safePageSize));
         model.addAttribute("username", principal != null ? principal.getName() : "");
         model.addAttribute("nameRaw", Objects.toString(name, ""));
         model.addAttribute("minPriceRaw", Objects.toString(minPrice, ""));
         model.addAttribute("maxPriceRaw", Objects.toString(maxPrice, ""));
         model.addAttribute("priceError", priceError);
+        model.addAttribute("pageSize", safePageSize);
         return "products/list";
     }
 

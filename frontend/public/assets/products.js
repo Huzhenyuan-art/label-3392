@@ -153,6 +153,23 @@
     const form = document.querySelector('form.searchbar[action="/products"]');
     if (!form) return;
 
+    const pageSizeSelect = document.getElementById("pageSizeSelect");
+    if (pageSizeSelect) {
+      pageSizeSelect.addEventListener("change", () => {
+        const pageInput = form.querySelector('input[name="page"]');
+        if (pageInput) {
+          pageInput.value = "1";
+        } else {
+          const newPageInput = document.createElement("input");
+          newPageInput.type = "hidden";
+          newPageInput.name = "page";
+          newPageInput.value = "1";
+          form.appendChild(newPageInput);
+        }
+        form.submit();
+      });
+    }
+
     const minEl = form.querySelector('input[name="minPrice"]');
     const maxEl = form.querySelector('input[name="maxPrice"]');
     if (!minEl || !maxEl) return;
