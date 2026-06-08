@@ -338,6 +338,65 @@
 
 ---
 
+### 修复 #009: 禁用自己账号时错误提示信息不完整 + Toast不支持多行显示
+
+**修复时间**: 2026-06-08
+
+**问题描述**:
+- 当管理员尝试执行"禁用自己"操作时，虽然操作未成功完成，但系统提供的错误提示信息过于简单，只有"不能禁用当前登录的账号"
+- 缺少详细的失败原因说明和可操作的解决方法指导
+- Toast 消息组件不支持多行文本显示，导致包含换行符的详细错误信息无法正确格式化展示
+
+**根本原因**:
+1. `UserServiceImpl.toggleEnabled()` 方法中的错误信息过于简略，只说明了"不能做什么"，没有说明"为什么不能做"和"应该怎么做"
+2. Controller 层和 Service 层存在重复的校验逻辑，且错误信息不一致
+3. Toast 组件使用 `textContent` 设置内容，且 CSS 中缺少 `white-space` 属性，导致 `\n` 换行符无法正确显示为换行
+4. Toast 宽度较窄（360px），不适合展示较长的错误信息
+
+**修复方案**:
+1. **增强错误信息**：在 `UserServiceImpl.toggleEnabled()` 方法中提供完整的三段式错误信息：
+   - 操作失败标题：明确告知操作失败
+   - 失败原因：详细解释为什么不能禁用自己（会导致立即被强制登出且无法再次登录）
+   - 解决方法：提供两种可操作的解决方案（使用其他管理员账号、忽略误操作）
+
+2. **优化代码结构**：
+   - 移除 Controller 层的重复校验逻辑，统一在 Service 层进行校验
+   - 修改 `toggleEnabled()` 方法签名，增加 `currentUserId` 参数，传入当前登录用户ID
+   - Controller 层只负责获取当前用户信息并传递给 Service 层
+
+3. **增强 Toast 组件**：
+   - 增加 Toast 宽度从 360px 到 420px，提供更多显示空间
+   - 添加 `white-space: pre-line` CSS 属性，使 `\n` 换行符能正确显示
+   - 增加 `line-height: 1.6` 提升多行文本的可读性
+   - 调整字体大小为 13px，增加背景不透明度到 90%
+
+4. **双重保护机制**：
+   - Service 层作为主要校验点，提供详细错误信息
+   - 即使 Controller 层未传入 `currentUserId`（为 null），Service 层也能安全处理（跳过校验）
+
+**影响文件**:
+
+| 文件路径 | 修改内容 |
+|----------|----------|
+| `backend/src/main/java/com/example/lab3392/service/UserService.java` | `toggleEnabled()` 方法签名增加 `currentUserId` 参数 |
+| `backend/src/main/java/com/example/lab3392/service/impl/UserServiceImpl.java` | 1) `toggleEnabled()` 方法增加 `currentUserId` 参数和校验逻辑；2) 增强错误信息，包含失败原因和解决方法 |
+| `backend/src/main/java/com/example/lab3392/controller/UserController.java` | 1) 移除重复的校验逻辑；2) 获取当前用户ID并传递给 Service 层 |
+| `frontend/public/assets/app.css` | Toast 组件增加宽度、`white-space: pre-line`、行高、字体大小等样式优化 |
+
+**修复状态**: ✅ 已完成
+
+**验证结果**:
+- 管理员尝试禁用自己时，会显示完整的三段式错误信息：
+  - 第一行："操作失败：不能禁用当前登录的账号。"
+  - 第二行："失败原因：您正在尝试禁用自己当前正在使用的账号，这会导致您立即被系统强制登出，且无法再次登录。"
+  - 第三行起："解决方法：1. 如果需要禁用该账号，请先使用其他管理员账号登录后再操作 2. 如果是误操作，请忽略此提示并继续管理其他用户"
+- Toast 消息正确换行显示，格式清晰，易于阅读
+- 错误信息通过 `flashBad` 属性正确传递到页面，并通过 `AppToast.bad()` 显示
+- 其他用户的启用/禁用操作正常，成功提示"用户状态更新成功"
+- 代码编译通过，无错误
+
+---
+
 ## 修复登记模板
 
 > 后续修复请复制以下模板并填写：

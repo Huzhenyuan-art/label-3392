@@ -130,8 +130,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void toggleEnabled(Long id) {
+    public void toggleEnabled(Long id, Long currentUserId) {
         User u = getByIdOrThrow(id);
+        if (currentUserId != null && u.getId().equals(currentUserId)) {
+            throw new IllegalArgumentException(
+                "操作失败：不能禁用当前登录的账号。\n" +
+                "失败原因：您正在尝试禁用自己当前正在使用的账号，这会导致您立即被系统强制登出，且无法再次登录。\n" +
+                "解决方法：\n" +
+                "1. 如果需要禁用该账号，请先使用其他管理员账号登录后再操作\n" +
+                "2. 如果是误操作，请忽略此提示并继续管理其他用户"
+            );
+        }
         u.setEnabled(u.getEnabled() == 1 ? 0 : 1);
         userMapper.updateById(u);
     }

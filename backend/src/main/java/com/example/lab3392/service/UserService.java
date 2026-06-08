@@ -21,6 +21,6 @@ public interface UserService {
 
     IPage<User> search(UserQuery q, long page, long size);
 
-    void toggleEnabled(Long id);
+    void toggleEnabled(Long id, Long currentUserId);
 }
 

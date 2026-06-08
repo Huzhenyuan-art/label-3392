@@ -106,10 +106,8 @@ public class UserController {
     public String toggleUserEnabled(@PathVariable Long id, Principal principal, RedirectAttributes ra) {
         try {
             User currentUser = userService.findByUsername(principal.getName());
-            if (currentUser != null && currentUser.getId().equals(id)) {
-                throw new IllegalArgumentException("不能禁用当前登录的账号");
-            }
-            userService.toggleEnabled(id);
+            Long currentUserId = currentUser != null ? currentUser.getId() : null;
+            userService.toggleEnabled(id, currentUserId);
             ra.addFlashAttribute("flashOk", "用户状态更新成功");
         } catch (IllegalArgumentException ex) {
             ra.addFlashAttribute("flashBad", ex.getMessage());
