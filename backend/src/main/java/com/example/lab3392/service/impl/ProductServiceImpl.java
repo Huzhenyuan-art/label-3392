@@ -98,7 +98,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @CacheEvict(cacheNames = {"productPagesV4", "productPagesV3", "productPagesV2", "productPages"}, allEntries = true)
-    public void create(ProductForm form) {
+    public Product create(ProductForm form) {
         validateCategory(form.categoryId());
         Product p = new Product();
         p.setCategoryId(form.categoryId());
@@ -108,6 +108,7 @@ public class ProductServiceImpl implements ProductService {
         p.setStock(form.stock());
         p.setStatus(form.status());
         productMapper.insert(p);
+        return p;
     }
 
     @Override

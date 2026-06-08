@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>操作审计日志</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+    <script defer src="/assets/app.js"></script>
+    <script defer src="/assets/operation-logs.js"></script>
+  </head>
+  <body class="page-operation-logs">
+    <header class="topbar">
+      <div class="inner">
+        <a class="brand" href="/"><span class="dot"></span><span>操作审计日志</span></a>
+        <nav class="nav">
+          <a class="btn" href="/products">产品管理</a>
+          <a class="btn" href="/categories">产品分类</a>
+          <a class="btn" href="/cart">购物车</a>
+          <div class="pill" th:if="${#authorization.expression('isAuthenticated()')}">
+            <span class="spark"></span><span th:text="'当前用户：' + ${username}">当前用户</span>
+          </div>
+          <form method="post" action="/logout" th:if="${#authorization.expression('isAuthenticated()')}">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            <button class="btn" type="submit">退出</button>
+          </form>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="card pad compact">
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:10px; flex-wrap:wrap">
+          <div>
+            <h1 class="h1" style="margin-top:8px">操作审计日志</h1>
+            <p class="sub">记录管理员对产品的新增、修改、删除行为，支持按操作类型与时间区间筛选。</p>
+          </div>
+          <div class="pill">
+            <span class="spark"></span><span>仅管理员可见</span>
+          </div>
+        </div>
+
+        <form method="get" action="/operation-logs" class="searchbar" style="margin-top:8px">
+          <div class="field inline">
+            <div class="label">操作类型</div>
+            <select class="select sm w-140" name="operationType" th:value="${operationTypeRaw}">
+              <option value="">全部</option>
+              <option value="CREATE" th:selected="${operationTypeRaw == 'CREATE'}">新增</option>
+              <option value="UPDATE" th:selected="${operationTypeRaw == 'UPDATE'}">修改</option>
+              <option value="DELETE" th:selected="${operationTypeRaw == 'DELETE'}">删除</option>
+            </select>
+          </div>
+
+          <div class="field inline">
+            <div class="label">时间区间</div>
+            <div class="price-group">
+              <input class="input sm w-140" type="date" name="startDate" placeholder="开始日期" th:value="${startDateRaw}" th:classappend="${dateError} ? ' invalid' : ''" />
+              <input class="input sm w-140" type="date" name="endDate" placeholder="结束日期" th:value="${endDateRaw}" th:classappend="${dateError} ? ' invalid' : ''" />
+            </div>
+            <div class="err-inline" data-role="date-error" th:if="${dateError}" th:text="${dateError}">时间区间错误</div>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" type="submit">查询</button>
+            <a class="btn" href="/operation-logs">重置</a>
+          </div>
+        </form>
+      </section>
+
+      <section class="card pad table-card fixed">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="col-id">ID</th>
+                <th class="col-op-type">操作类型</th>
+                <th class="col-operator">操作人</th>
+                <th class="col-target">目标对象</th>
+                <th class="col-created">操作时间</th>
+                <th class="col-actions">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="log : ${page.records}">
+                <td class="col-id" th:text="${log.id}">1</td>
+                <td class="col-op-type">
+                  <span class="pill" th:classappend="${log.operationType == 'CREATE' ? 'status-active' : (log.operationType == 'DELETE' ? 'status-inactive' : '')}">
+                    <span class="spark"></span>
+                    <span th:text="${log.operationType == 'CREATE' ? '新增' : (log.operationType == 'UPDATE' ? '修改' : '删除')}">操作</span>
+                  </span>
+                </td>
+                <td class="col-operator" th:text="${log.operatorUsername}">admin</td>
+                <td class="col-target">
+                  <div class="cell-name">
+                    <span class="label" th:text="${log.targetType + ' #' + log.targetId}">PRODUCT #1</span>
+                  </div>
+                </td>
+                <td class="col-created" th:text="${#temporals.format(log.createdAt, 'yyyy-MM-dd HH:mm:ss')}">time</td>
+                <td class="col-actions">
+                  <button class="btn sm toggle-snapshot" type="button" th:data-target-id="'snapshot-' + ${log.id}">查看详情</button>
+                </td>
+              </tr>
+              <tr th:if="${page.total == 0}">
+                <td colspan="6" class="hint">暂无数据，尝试调整查询条件。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="snapshot-panel" th:each="log : ${page.records}" th:id="'snapshot-' + ${log.id}">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px">
+            <span class="label" style="font-weight:650">变更快照</span>
+            <button class="btn sm close-snapshot" type="button" th:data-target-id="'snapshot-' + ${log.id}">收起</button>
+          </div>
+          <div class="grid cols2 tight">
+            <div>
+              <div class="kv-k" style="margin-bottom:6px">变更前</div>
+              <pre class="snapshot-json" th:if="${log.beforeSnapshot}" th:text="${log.beforeSnapshot}">{"id":1,"name":"产品A"}</pre>
+              <div class="hint" th:unless="${log.beforeSnapshot}">无（新增操作）</div>
+            </div>
+            <div>
+              <div class="kv-k" style="margin-bottom:6px">变更后</div>
+              <pre class="snapshot-json" th:if="${log.afterSnapshot}" th:text="${log.afterSnapshot}">{"id":1,"name":"产品B"}</pre>
+              <div class="hint" th:unless="${log.afterSnapshot}">无（删除操作）</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:12px">
+          <div class="hint" th:text="'共 ' + ${page.total} + ' 条，当前第 ' + (${page.current}) + ' / ' + ${page.pages} + ' 页'">分页</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <a class="btn" th:href="@{/operation-logs(operationType=${operationTypeRaw},startDate=${startDateRaw},endDate=${endDateRaw},page=1)}">首页</a>
+            <a class="btn" th:if="${page.current > 1}" th:href="@{/operation-logs(operationType=${operationTypeRaw},startDate=${startDateRaw},endDate=${endDateRaw},page=${page.current - 1})}">上一页</a>
+            <a class="btn" th:if="${page.current < page.pages}" th:href="@{/operation-logs(operationType=${operationTypeRaw},startDate=${startDateRaw},endDate=${endDateRaw},page=${page.current + 1})}">下一页</a>
+            <a class="btn" th:href="@{/operation-logs(operationType=${operationTypeRaw},startDate=${startDateRaw},endDate=${endDateRaw},page=${page.pages})}">末页</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script th:if="${flashOk}" th:inline="javascript">
+      window.AppToast && window.AppToast.ok([[${flashOk}]]);
+    </script>
+    <script th:if="${flashBad}" th:inline="javascript">
+      window.AppToast && window.AppToast.bad([[${flashBad}]]);
+    </script>
+  </body>
+</html>

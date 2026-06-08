@@ -43,7 +43,8 @@ body.page-categories .container{
   body.page-categories .container{padding:14px 16px !important}
 }
 body.page-products,
-body.page-categories{
+body.page-categories,
+body.page-operation-logs{
   height:100vh;
   height:100dvh;
   width:100%;
@@ -54,7 +55,8 @@ body.page-categories{
   overflow:hidden;
 }
 body.page-products main.container,
-body.page-categories main.container{
+body.page-categories main.container,
+body.page-operation-logs main.container{
   flex:1 1 auto;
   display:flex;
   flex-direction:column;
@@ -64,9 +66,11 @@ body.page-categories main.container{
   margin:0 !important;
 }
 body.page-products main.container > section.card.compact,
-body.page-categories main.container > section.card.compact{flex:0 0 auto}
+body.page-categories main.container > section.card.compact,
+body.page-operation-logs main.container > section.card.compact{flex:0 0 auto}
 body.page-products main.container > section.table-card.fixed,
-body.page-categories main.container > section.table-card.fixed{flex:1 1 auto; min-height:0}
+body.page-categories main.container > section.table-card.fixed,
+body.page-operation-logs main.container > section.table-card.fixed{flex:1 1 auto; min-height:0}
 body.page-products.page-detail main.container,
 body.page-categories.page-detail main.container{overflow:auto}
 
@@ -160,7 +164,8 @@ body.page-categories.page-detail main.container{overflow:auto}
 
 @media (max-width: 900px){
   body.page-products .container,
-  body.page-categories .container{padding:14px 16px !important}
+  body.page-categories .container,
+  body.page-operation-logs .container{padding:14px 16px !important}
   .table-wrap{
     overflow-x:auto;
     -webkit-overflow-scrolling:touch;
@@ -170,6 +175,10 @@ body.page-categories.page-detail main.container{overflow:auto}
   .col-code{width:120px; max-width:120px}
   .col-updated{width:150px; max-width:150px}
   .col-actions{width:220px; max-width:220px}
+  .col-op-type{width:120px; max-width:120px}
+  .col-operator{width:140px; max-width:140px}
+  .col-target{width:180px; max-width:180px}
+  .col-created{width:170px; max-width:170px}
 }
 
 @media (max-width: 640px){
@@ -188,22 +197,26 @@ body.page-categories.page-detail main.container{overflow:auto}
 
 @media (max-width: 480px){
   body.page-products .searchbar,
-  body.page-categories .searchbar{
+  body.page-categories .searchbar,
+  body.page-operation-logs .searchbar{
     flex-direction:column;
     align-items:stretch;
   }
   body.page-products .searchbar .field.inline,
-  body.page-categories .searchbar .field.inline{
+  body.page-categories .searchbar .field.inline,
+  body.page-operation-logs .searchbar .field.inline{
     flex-direction:column;
     align-items:flex-start;
   }
   body.page-products .searchbar .actions,
-  body.page-categories .searchbar .actions{
+  body.page-categories .searchbar .actions,
+  body.page-operation-logs .searchbar .actions{
     width:100%;
     justify-content:stretch;
   }
   body.page-products .searchbar .actions .btn,
-  body.page-categories .searchbar .actions .btn{
+  body.page-categories .searchbar .actions .btn,
+  body.page-operation-logs .searchbar .actions .btn{
     flex:1;
   }
 }
@@ -307,13 +320,21 @@ tr:hover td{background:rgba(255,255,255,.62)}
 .col-status{width:140px; max-width:140px}
 .col-updated{width:170px; max-width:170px}
 .col-actions{width:260px; max-width:260px}
+.col-op-type{width:130px; max-width:130px}
+.col-operator{width:150px; max-width:150px}
+.col-target{width:200px; max-width:200px}
+.col-created{width:190px; max-width:190px}
 
 td.col-id,
 td.col-name,
 td.col-price,
 td.col-stock,
 td.col-status,
-td.col-updated{
+td.col-updated,
+td.col-op-type,
+td.col-operator,
+td.col-target,
+td.col-created{
   overflow:hidden;
   text-overflow:ellipsis;
 }
@@ -387,3 +408,35 @@ td.col-actions{overflow:visible}
 @keyframes pop{from{transform:translateY(8px);opacity:.2}to{transform:translateY(0);opacity:1}}
 
 .footer{color:rgba(11,18,32,.55); font-size:12px; padding:18px 0}
+
+.snapshot-panel{
+  display:none;
+  margin-top:12px;
+  padding:14px;
+  border:1px dashed var(--stroke);
+  border-radius:14px;
+  background:rgba(255,255,255,.55);
+}
+.snapshot-panel.open{
+  display:block;
+  animation:pop .15s ease-out;
+}
+.snapshot-json{
+  margin:0;
+  padding:10px 12px;
+  background:rgba(11,18,32,.04);
+  border:1px solid var(--stroke);
+  border-radius:10px;
+  font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace;
+  font-size:12px;
+  line-height:1.6;
+  white-space:pre-wrap;
+  word-break:break-all;
+  max-height:240px;
+  overflow:auto;
+}
+.btn.sm{
+  padding:6px 10px;
+  font-size:12px;
+  border-radius:10px;
+}

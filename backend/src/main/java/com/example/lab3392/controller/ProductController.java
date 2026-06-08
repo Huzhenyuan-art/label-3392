@@ -3,8 +3,11 @@ package com.example.lab3392.controller;
 import com.example.lab3392.dto.ProductForm;
 import com.example.lab3392.dto.ProductQuery;
 import com.example.lab3392.entity.Product;
+import com.example.lab3392.entity.User;
+import com.example.lab3392.service.OperationLogService;
 import com.example.lab3392.service.ProductCategoryService;
 import com.example.lab3392.service.ProductService;
+import com.example.lab3392.service.UserService;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.security.Principal;
@@ -24,10 +27,15 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class ProductController {
     private final ProductService productService;
     private final ProductCategoryService categoryService;
+    private final OperationLogService operationLogService;
+    private final UserService userService;
 
-    public ProductController(ProductService productService, ProductCategoryService categoryService) {
+    public ProductController(ProductService productService, ProductCategoryService categoryService,
+                             OperationLogService operationLogService, UserService userService) {
         this.productService = productService;
         this.categoryService = categoryService;
+        this.operationLogService = operationLogService;
+        this.userService = userService;
     }
 
     @GetMapping("/products")
@@ -92,7 +100,7 @@ public class ProductController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/products")
-    public String create(@Valid @ModelAttribute("form") ProductForm form, BindingResult binding, Model model, RedirectAttributes ra) {
+    public String create(@Valid @ModelAttribute("form") ProductForm form, BindingResult binding, Model model, RedirectAttributes ra, Principal principal) {
         if (binding.hasErrors()) {
             model.addAttribute("mode", "create");
             model.addAttribute("categories", categoryService.listAllActive());
@@ -100,7 +108,11 @@ public class ProductController {
             return "products/form";
         }
         try {
-            productService.create(form);
+            Product created = productService.create(form);
+            User operator = getCurrentOperator(principal);
+            if (operator != null) {
+                operationLogService.logProductCreate(created, operator.getId(), operator.getUsername());
+            }
         } catch (IllegalArgumentException ex) {
             model.addAttribute("mode", "create");
             model.addAttribute("categories", categoryService.listAllActive());
@@ -123,7 +135,7 @@ public class ProductController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/products/{id}")
-    public String update(@PathVariable Long id, @Valid @ModelAttribute("form") ProductForm form, BindingResult binding, Model model, RedirectAttributes ra) {
+    public String update(@PathVariable Long id, @Valid @ModelAttribute("form") ProductForm form, BindingResult binding, Model model, RedirectAttributes ra, Principal principal) {
         if (binding.hasErrors()) {
             model.addAttribute("mode", "edit");
             model.addAttribute("categories", categoryService.listAllActive());
@@ -131,7 +143,13 @@ public class ProductController {
             return "products/form";
         }
         try {
+            Product before = productService.getByIdOrThrow(id);
             productService.update(id, form);
+            Product after = productService.getByIdOrThrow(id);
+            User operator = getCurrentOperator(principal);
+            if (operator != null) {
+                operationLogService.logProductUpdate(before, after, operator.getId(), operator.getUsername());
+            }
         } catch (IllegalArgumentException ex) {
             model.addAttribute("mode", "edit");
             model.addAttribute("categories", categoryService.listAllActive());
@@ -144,10 +162,20 @@ public class ProductController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/products/{id}/delete")
-    public String delete(@PathVariable Long id, RedirectAttributes ra) {
+    public String delete(@PathVariable Long id, RedirectAttributes ra, Principal principal) {
+        Product existing = productService.getByIdOrThrow(id);
         productService.delete(id);
+        User operator = getCurrentOperator(principal);
+        if (operator != null) {
+            operationLogService.logProductDelete(existing, operator.getId(), operator.getUsername());
+        }
         ra.addFlashAttribute("flashOk", "删除成功");
         return "redirect:/products";
+    }
+
+    private User getCurrentOperator(Principal principal) {
+        if (principal == null) return null;
+        return userService.findByUsername(principal.getName());
     }
 
     private static String trimToNull(String s) {

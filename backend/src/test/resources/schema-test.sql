@@ -63,3 +63,15 @@ CREATE TABLE IF NOT EXISTS cart_items (
     REFERENCES products(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS operation_logs (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  operator_id BIGINT NOT NULL,
+  operator_username VARCHAR(50) NOT NULL,
+  operation_type VARCHAR(20) NOT NULL,
+  target_type VARCHAR(50) NOT NULL,
+  target_id BIGINT NOT NULL,
+  before_snapshot TEXT,
+  after_snapshot TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+

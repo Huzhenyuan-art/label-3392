@@ -12,11 +12,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.example.lab3392.entity.OperationLog;
 import com.example.lab3392.entity.Product;
 import com.example.lab3392.entity.ProductCategory;
 import com.example.lab3392.entity.Role;
 import com.example.lab3392.entity.User;
 import com.example.lab3392.entity.UserRole;
+import com.example.lab3392.mapper.OperationLogMapper;
 import com.example.lab3392.mapper.ProductCategoryMapper;
 import com.example.lab3392.mapper.ProductMapper;
 import com.example.lab3392.mapper.RoleMapper;
@@ -60,6 +62,9 @@ class MvcSecurityIntegrationTest extends DbTestSupport {
 
     @Autowired
     ProductCategoryMapper categoryMapper;
+
+    @Autowired
+    OperationLogMapper operationLogMapper;
 
     Long testCategoryId;
 
@@ -428,10 +433,10 @@ class MvcSecurityIntegrationTest extends DbTestSupport {
                 .andReturn();
         String html1 = r1.getResponse().getContentAsString();
         assertThat(html1).contains("name=TestProduct");
-        assertThat(html1).contains("minPrice=10.0");
-        assertThat(html1).contains("maxPrice=100.00");
-        assertThat(html1).doesNotContain("minPrice=10");
-        assertThat(html1).doesNotContain("maxPrice=100.0");
+        assertThat(html1).contains("minPrice=10.0&amp;");
+        assertThat(html1).contains("maxPrice=100.00&amp;");
+        assertThat(html1).doesNotContain("minPrice=10&amp;");
+        assertThat(html1).doesNotContain("maxPrice=100.0&amp;");
 
         MvcResult r2 = mockMvc.perform(get("/products?name=&minPrice=abc&maxPrice=xyz&page=1").session(session))
                 .andExpect(status().isOk())
@@ -500,6 +505,107 @@ class MvcSecurityIntegrationTest extends DbTestSupport {
                 .andReturn();
         assertThat(result2.getResponse().getContentAsString()).contains("用户名或密码错误，请重试。");
         assertThat(result2.getResponse().getContentAsString()).doesNotContain("账号已被禁用");
+    }
+
+    @Test
+    void operationLogs_page_userRole_accessDenied() throws Exception {
+        Role userRole = ensureRole("USER", "普通用户");
+        User u = new User();
+        u.setUsername("testuser_logs");
+        u.setEmail("testuser_logs@example.com");
+        u.setPasswordHash(passwordEncoder.encode("password123"));
+        u.setEnabled(1);
+        userMapper.insert(u);
+        ensureUserRole(u.getId(), userRole.getId());
+
+        MvcResult login = mockMvc.perform(post("/login").with(csrf())
+                        .param("username", "testuser_logs")
+                        .param("password", "password123"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        MockHttpSession session = (MockHttpSession) login.getRequest().getSession(false);
+        assertThat(session).isNotNull();
+
+        mockMvc.perform(get("/operation-logs").session(session))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void operationLogs_page_adminRole_accessOk() throws Exception {
+        Role adminRole = ensureRole("ADMIN", "管理员");
+        User u = new User();
+        u.setUsername("admin_logs");
+        u.setEmail("admin_logs@example.com");
+        u.setPasswordHash(passwordEncoder.encode("password123"));
+        u.setEnabled(1);
+        userMapper.insert(u);
+        ensureUserRole(u.getId(), adminRole.getId());
+
+        MvcResult login = mockMvc.perform(post("/login").with(csrf())
+                        .param("username", "admin_logs")
+                        .param("password", "password123"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        MockHttpSession session = (MockHttpSession) login.getRequest().getSession(false);
+        assertThat(session).isNotNull();
+
+        MvcResult r = mockMvc.perform(get("/operation-logs").session(session))
+                .andExpect(status().isOk())
+                .andReturn();
+        String html = r.getResponse().getContentAsString();
+        assertThat(html).contains("操作审计日志");
+        assertThat(html).contains("操作类型");
+        assertThat(html).contains("时间区间");
+    }
+
+    @Test
+    void product_creates_operationLog_recorded() throws Exception {
+        Role adminRole = ensureRole("ADMIN", "管理员");
+        User u = new User();
+        u.setUsername("admin_createlog");
+        u.setEmail("admin_createlog@example.com");
+        u.setPasswordHash(passwordEncoder.encode("password123"));
+        u.setEnabled(1);
+        userMapper.insert(u);
+        ensureUserRole(u.getId(), adminRole.getId());
+
+        Long catId = ensureTestCategory();
+
+        MvcResult login = mockMvc.perform(post("/login").with(csrf())
+                        .param("username", "admin_createlog")
+                        .param("password", "password123"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        MockHttpSession session = (MockHttpSession) login.getRequest().getSession(false);
+        assertThat(session).isNotNull();
+
+        long logCountBefore = operationLogMapper.selectCount(new LambdaQueryWrapper<>());
+
+        mockMvc.perform(post("/products").with(csrf()).session(session)
+                        .param("categoryId", catId.toString())
+                        .param("name", "审计测试产品")
+                        .param("description", "测试描述")
+                        .param("price", "99.99")
+                        .param("stock", "100")
+                        .param("status", "ACTIVE"))
+                .andExpect(status().is3xxRedirection());
+
+        long logCountAfter = operationLogMapper.selectCount(new LambdaQueryWrapper<>());
+        assertThat(logCountAfter).isEqualTo(logCountBefore + 1);
+
+        OperationLog log = operationLogMapper.selectOne(new LambdaQueryWrapper<OperationLog>()
+                .eq(OperationLog::getOperationType, "CREATE")
+                .eq(OperationLog::getOperatorUsername, "admin_createlog")
+                .orderByDesc(OperationLog::getId)
+                .last("LIMIT 1"));
+        assertThat(log).isNotNull();
+        assertThat(log.getTargetType()).isEqualTo("PRODUCT");
+        assertThat(log.getBeforeSnapshot()).isNull();
+        assertThat(log.getAfterSnapshot()).contains("审计测试产品");
+        assertThat(log.getAfterSnapshot()).contains("99.99");
     }
 
     private static int countOccurrences(String s, String needle) {

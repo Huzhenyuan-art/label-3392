@@ -12,7 +12,7 @@ public interface ProductService {
 
     Product getByIdWithCategory(Long id);
 
-    void create(ProductForm form);
+    Product create(ProductForm form);
 
     void update(Long id, ProductForm form);
 

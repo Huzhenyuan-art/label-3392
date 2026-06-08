@@ -49,5 +49,11 @@ public class UserServiceImpl implements UserService {
             userRoleMapper.insert(ur);
         }
     }
+
+    @Override
+    public User findByUsername(String username) {
+        if (username == null) return null;
+        return userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+    }
 }
 
