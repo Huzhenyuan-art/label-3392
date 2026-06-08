@@ -286,6 +286,58 @@
 
 ---
 
+### 修复 #008: 管理员可禁用自己账号 + 用户管理页面宽度问题
+
+**修复时间**: 2026-06-08
+
+**问题描述**:
+- 管理员在用户管理页面可以禁用自己的账号，导致当前会话异常，无法继续操作
+- 用户管理页面的列表模块宽度没有与页面一样宽，与产品列表、分类列表页面布局不一致
+
+**根本原因**:
+1. `UserController.toggleUserEnabled()` 方法没有检查要操作的用户是否是当前登录用户，导致管理员可以禁用自己
+2. 用户管理页面使用 `page-users` 类名，但 CSS 中缺少对应的全宽布局样式（`.page-products` 和 `.page-categories` 有专门的全宽样式，`page-users` 没有）
+3. 缺少响应式媒体查询适配，导致用户管理页面在不同屏幕尺寸下显示异常
+
+**修复方案**:
+1. 在 `UserController.toggleUserEnabled()` 方法中添加当前用户校验：
+   - 获取当前登录用户信息
+   - 比较当前用户ID与要操作的用户ID
+   - 如果相同则抛出异常，提示"不能禁用当前登录的账号"
+2. 为 `.page-users` 添加与 `.page-products` 和 `.page-categories` 相同的全宽布局样式：
+   - `body.page-users .container`：全宽显示，移除最大宽度限制
+   - `body.page-users`：固定定位、弹性布局、100%高度
+   - `body.page-users main.container`：弹性自适应高度
+   - `body.page-users main.container > section.card.compact`：固定高度
+   - `body.page-users main.container > section.table-card.fixed`：自适应高度
+3. 添加响应式媒体查询适配：
+   - `@media (max-width: 720px)`：调整内边距
+   - `@media (max-width: 900px)`：调整内边距，启用横向滚动
+   - `@media (max-width: 480px)`：搜索栏改为垂直布局，按钮全宽显示
+4. 添加搜索栏样式：
+   - `body.page-users .searchbar`：设置间距
+   - `body.page-users .searchbar .actions`：设置间距
+
+**影响文件**:
+
+| 文件路径 | 修改内容 |
+|----------|----------|
+| `backend/src/main/java/com/example/lab3392/controller/UserController.java` | `toggleUserEnabled()` 方法添加 Principal 参数，校验当前用户不能禁用自己 |
+| `frontend/public/assets/app.css` | 为 `.page-users` 添加全宽布局样式、响应式断点、搜索栏样式，所有相关选择器添加 `body.page-users` |
+
+**修复状态**: ✅ 已完成
+
+**验证结果**:
+- 管理员尝试禁用自己时，会显示错误提示"不能禁用当前登录的账号"
+- 用户管理页面与产品列表页、分类列表页布局一致，全宽显示
+- 大屏幕：7 列完整显示，无溢出
+- 中等屏幕（≤900px）：列宽自适应，表格可横向滚动
+- 小屏幕（≤640px）：列宽缩小，输入框全宽显示
+- 超小屏幕（≤480px）：搜索栏垂直布局，按钮全宽
+- 代码编译通过，无错误
+
+---
+
 ## 修复登记模板
 
 > 后续修复请复制以下模板并填写：

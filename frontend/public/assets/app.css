@@ -33,18 +33,21 @@ a{color:inherit; text-decoration:none}
 .link:hover{color:rgba(37,99,235,.95); text-decoration:underline}
 .container{max-width:1100px; margin:0 auto; padding:24px}
 body.page-products .container,
-body.page-categories .container{
+body.page-categories .container,
+body.page-users .container{
   max-width:none !important;
   width:100% !important;
   padding:18px 24px !important;
 }
 @media (max-width: 720px){
   body.page-products .container,
-  body.page-categories .container{padding:14px 16px !important}
+  body.page-categories .container,
+  body.page-users .container{padding:14px 16px !important}
 }
 body.page-products,
 body.page-categories,
-body.page-operation-logs{
+body.page-operation-logs,
+body.page-users{
   height:100vh;
   height:100dvh;
   width:100%;
@@ -56,7 +59,8 @@ body.page-operation-logs{
 }
 body.page-products main.container,
 body.page-categories main.container,
-body.page-operation-logs main.container{
+body.page-operation-logs main.container,
+body.page-users main.container{
   flex:1 1 auto;
   display:flex;
   flex-direction:column;
@@ -67,10 +71,12 @@ body.page-operation-logs main.container{
 }
 body.page-products main.container > section.card.compact,
 body.page-categories main.container > section.card.compact,
-body.page-operation-logs main.container > section.card.compact{flex:0 0 auto}
+body.page-operation-logs main.container > section.card.compact,
+body.page-users main.container > section.card.compact{flex:0 0 auto}
 body.page-products main.container > section.table-card.fixed,
 body.page-categories main.container > section.table-card.fixed,
-body.page-operation-logs main.container > section.table-card.fixed{flex:1 1 auto; min-height:0}
+body.page-operation-logs main.container > section.table-card.fixed,
+body.page-users main.container > section.table-card.fixed{flex:1 1 auto; min-height:0}
 body.page-products.page-detail main.container,
 body.page-categories.page-detail main.container{overflow:auto}
 
@@ -167,7 +173,8 @@ body.page-categories.page-detail main.container{overflow:auto}
 @media (max-width: 900px){
   body.page-products .container,
   body.page-categories .container,
-  body.page-operation-logs .container{padding:14px 16px !important}
+  body.page-operation-logs .container,
+  body.page-users .container{padding:14px 16px !important}
   .table-wrap{
     overflow-x:auto;
     -webkit-overflow-scrolling:touch;
@@ -200,25 +207,29 @@ body.page-categories.page-detail main.container{overflow:auto}
 @media (max-width: 480px){
   body.page-products .searchbar,
   body.page-categories .searchbar,
-  body.page-operation-logs .searchbar{
+  body.page-operation-logs .searchbar,
+  body.page-users .searchbar{
     flex-direction:column;
     align-items:stretch;
   }
   body.page-products .searchbar .field.inline,
   body.page-categories .searchbar .field.inline,
-  body.page-operation-logs .searchbar .field.inline{
+  body.page-operation-logs .searchbar .field.inline,
+  body.page-users .searchbar .field.inline{
     flex-direction:column;
     align-items:flex-start;
   }
   body.page-products .searchbar .actions,
   body.page-categories .searchbar .actions,
-  body.page-operation-logs .searchbar .actions{
+  body.page-operation-logs .searchbar .actions,
+  body.page-users .searchbar .actions{
     width:100%;
     justify-content:stretch;
   }
   body.page-products .searchbar .actions .btn,
   body.page-categories .searchbar .actions .btn,
-  body.page-operation-logs .searchbar .actions .btn{
+  body.page-operation-logs .searchbar .actions .btn,
+  body.page-users .searchbar .actions .btn{
     flex:1;
   }
 }
@@ -289,9 +300,11 @@ body.page-categories.page-detail main.container{overflow:auto}
 .input.w-320{width:320px; max-width:46vw}
 
 body.page-products .searchbar,
-body.page-categories .searchbar{gap:8px}
+body.page-categories .searchbar,
+body.page-users .searchbar{gap:8px}
 body.page-products .searchbar .actions,
-body.page-categories .searchbar .actions{gap:8px}
+body.page-categories .searchbar .actions,
+body.page-users .searchbar .actions{gap:8px}
 
 .table-card{display:flex; flex-direction:column; gap:12px}
 .table-card.fixed{flex:1 1 auto; min-height:0; padding:14px; overflow:hidden}
