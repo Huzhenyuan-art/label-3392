@@ -389,6 +389,60 @@ class MvcSecurityIntegrationTest extends DbTestSupport {
     }
 
     @Test
+    void pagination_links_preserve_raw_query_strings() throws Exception {
+        Role admin = ensureRole("ADMIN", "管理员");
+        Role userRole = ensureRole("USER", "普通用户");
+        Long catId = ensureTestCategory();
+
+        User u = new User();
+        u.setUsername("admin");
+        u.setEmail("admin@example.com");
+        u.setEnabled(1);
+        u.setPasswordHash(passwordEncoder.encode("123456"));
+        userMapper.insert(u);
+        ensureUserRole(u.getId(), admin.getId());
+        ensureUserRole(u.getId(), userRole.getId());
+
+        for (int i = 1; i <= 15; i++) {
+            Product p = new Product();
+            p.setCategoryId(catId);
+            p.setName("TestProduct " + i);
+            p.setDescription("D" + i);
+            p.setPrice(new BigDecimal("50.00"));
+            p.setStock(1);
+            p.setStatus("ACTIVE");
+            productMapper.insert(p);
+        }
+
+        MvcResult login = mockMvc.perform(post("/login").with(csrf())
+                        .param("username", "admin")
+                        .param("password", "123456"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        MockHttpSession session = (MockHttpSession) login.getRequest().getSession(false);
+        assertThat(session).isNotNull();
+
+        MvcResult r1 = mockMvc.perform(get("/products?name=TestProduct&minPrice=10.0&maxPrice=100.00&page=1").session(session))
+                .andExpect(status().isOk())
+                .andReturn();
+        String html1 = r1.getResponse().getContentAsString();
+        assertThat(html1).contains("name=TestProduct");
+        assertThat(html1).contains("minPrice=10.0");
+        assertThat(html1).contains("maxPrice=100.00");
+        assertThat(html1).doesNotContain("minPrice=10");
+        assertThat(html1).doesNotContain("maxPrice=100.0");
+
+        MvcResult r2 = mockMvc.perform(get("/products?name=&minPrice=abc&maxPrice=xyz&page=1").session(session))
+                .andExpect(status().isOk())
+                .andReturn();
+        String html2 = r2.getResponse().getContentAsString();
+        assertThat(html2).contains("minPrice=abc");
+        assertThat(html2).contains("maxPrice=xyz");
+        assertThat(html2).contains("价格区间请输入数字");
+    }
+
+    @Test
     void login_disabledUser_showsDisabledMessage() throws Exception {
         Role userRole = ensureRole("USER", "普通用户");
 

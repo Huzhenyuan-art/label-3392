@@ -67,6 +67,7 @@ public class ProductController {
         long safePage = priceError == null ? page : 1;
         model.addAttribute("page", productService.search(q, safePage, 10));
         model.addAttribute("username", principal != null ? principal.getName() : "");
+        model.addAttribute("nameRaw", Objects.toString(name, ""));
         model.addAttribute("minPriceRaw", Objects.toString(minPrice, ""));
         model.addAttribute("maxPriceRaw", Objects.toString(maxPrice, ""));
         model.addAttribute("priceError", priceError);
