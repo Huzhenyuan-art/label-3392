@@ -202,6 +202,43 @@
 
 ---
 
+### 修复 #006: 购物车列表页面 product 对象未填充导致模板解析错误
+
+**修复时间**: 2026-06-08
+
+**问题描述**:
+- 购物车列表页面 (`/cart`) 打开时出现模板解析错误
+- 错误表现为 Thymeleaf 模板渲染失败，无法访问 `${item.product.id}` 等属性
+- 控制台抛出 `NullPointerException`，提示 `item.product` 为 null
+
+**根本原因**:
+- `CartItemMapper.selectByUserIdWithProduct()` 虽然通过 SQL JOIN 查询了 `products` 表的所有字段
+- 但 MyBatis Plus 的默认结果映射无法自动将这些字段填充到 `CartItem.product` 这个**嵌套对象**中
+- `CartItem.product` 被标记为 `@TableField(exist = false)`，MyBatis 不会尝试自动映射该字段
+- 导致模板中访问 `${item.product.id}`、`${item.product.name}` 等属性时抛出 NPE
+
+**修复方案**:
+- 在 `CartServiceImpl.getCurrentUserCart()` 方法中，获取 Mapper 返回的购物车列表后
+- 遍历每个 `CartItem`，通过 `productService.getByIdWithCategory(item.getProductId())` 查询完整的 Product 对象
+- 手动调用 `item.setProduct(product)` 填充嵌套对象
+- 确保模板渲染时 `item.product` 不为 null
+
+**影响文件**:
+
+| 文件路径 | 修改内容 |
+|----------|----------|
+| `backend/src/main/java/com/example/lab3392/service/impl/CartServiceImpl.java` | `getCurrentUserCart()` 方法中添加循环，手动填充每个 CartItem 的 product 字段 |
+
+**修复状态**: ✅ 已完成
+
+**验证结果**:
+- 所有 29 个测试全部通过（Tests run: 29, Failures: 0, Errors: 0, Skipped: 0）
+- 购物车列表页面正常渲染，可正确显示商品名称、单价、分类等信息
+- 小计金额 `getSubtotal()` 方法可正常计算（依赖 product.price）
+- 结算页面 `validateCartForCheckout()` 方法可正常校验商品状态和库存
+
+---
+
 ## 修复登记模板
 
 > 后续修复请复制以下模板并填写：

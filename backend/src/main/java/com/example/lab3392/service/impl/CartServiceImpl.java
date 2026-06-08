@@ -81,7 +81,12 @@ public class CartServiceImpl implements CartService {
     @Override
     public List<CartItem> getCurrentUserCart() {
         Long userId = getCurrentUserId();
-        return cartItemMapper.selectByUserIdWithProduct(userId);
+        List<CartItem> items = cartItemMapper.selectByUserIdWithProduct(userId);
+        for (CartItem item : items) {
+            Product product = productService.getByIdWithCategory(item.getProductId());
+            item.setProduct(product);
+        }
+        return items;
     }
 
     private CartItem getCartItemAndValidateOwnership(Long cartItemId) {
