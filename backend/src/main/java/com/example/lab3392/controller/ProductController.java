@@ -3,6 +3,7 @@ package com.example.lab3392.controller;
 import com.example.lab3392.dto.ProductForm;
 import com.example.lab3392.dto.ProductQuery;
 import com.example.lab3392.entity.Product;
+import com.example.lab3392.service.ProductCategoryService;
 import com.example.lab3392.service.ProductService;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
@@ -22,9 +23,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 public class ProductController {
     private final ProductService productService;
+    private final ProductCategoryService categoryService;
 
-    public ProductController(ProductService productService) {
+    public ProductController(ProductService productService, ProductCategoryService categoryService) {
         this.productService = productService;
+        this.categoryService = categoryService;
     }
 
     @GetMapping("/products")
@@ -72,7 +75,7 @@ public class ProductController {
 
     @GetMapping("/products/{id}")
     public String detail(@PathVariable Long id, Model model, Principal principal) {
-        model.addAttribute("product", productService.getByIdOrThrow(id));
+        model.addAttribute("product", productService.getByIdWithCategory(id));
         model.addAttribute("username", principal != null ? principal.getName() : "");
         return "products/detail";
     }
@@ -82,6 +85,7 @@ public class ProductController {
     public String createForm(Model model) {
         model.addAttribute("mode", "create");
         model.addAttribute("form", ProductForm.empty());
+        model.addAttribute("categories", categoryService.listAllActive());
         return "products/form";
     }
 
@@ -90,10 +94,18 @@ public class ProductController {
     public String create(@Valid @ModelAttribute("form") ProductForm form, BindingResult binding, Model model, RedirectAttributes ra) {
         if (binding.hasErrors()) {
             model.addAttribute("mode", "create");
+            model.addAttribute("categories", categoryService.listAllActive());
             model.addAttribute("error", binding.getAllErrors().isEmpty() ? "表单校验失败" : binding.getAllErrors().get(0).getDefaultMessage());
             return "products/form";
         }
-        productService.create(form);
+        try {
+            productService.create(form);
+        } catch (IllegalArgumentException ex) {
+            model.addAttribute("mode", "create");
+            model.addAttribute("categories", categoryService.listAllActive());
+            model.addAttribute("error", ex.getMessage());
+            return "products/form";
+        }
         ra.addFlashAttribute("flashOk", "创建成功");
         return "redirect:/products";
     }
@@ -104,6 +116,7 @@ public class ProductController {
         Product p = productService.getByIdOrThrow(id);
         model.addAttribute("mode", "edit");
         model.addAttribute("form", ProductForm.fromEntity(p));
+        model.addAttribute("categories", categoryService.listAllActive());
         return "products/form";
     }
 
@@ -112,10 +125,18 @@ public class ProductController {
     public String update(@PathVariable Long id, @Valid @ModelAttribute("form") ProductForm form, BindingResult binding, Model model, RedirectAttributes ra) {
         if (binding.hasErrors()) {
             model.addAttribute("mode", "edit");
+            model.addAttribute("categories", categoryService.listAllActive());
             model.addAttribute("error", binding.getAllErrors().isEmpty() ? "表单校验失败" : binding.getAllErrors().get(0).getDefaultMessage());
             return "products/form";
         }
-        productService.update(id, form);
+        try {
+            productService.update(id, form);
+        } catch (IllegalArgumentException ex) {
+            model.addAttribute("mode", "edit");
+            model.addAttribute("categories", categoryService.listAllActive());
+            model.addAttribute("error", ex.getMessage());
+            return "products/form";
+        }
         ra.addFlashAttribute("flashOk", "更新成功");
         return "redirect:/products";
     }

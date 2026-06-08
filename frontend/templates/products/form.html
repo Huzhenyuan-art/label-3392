@@ -34,9 +34,15 @@
 
           <div class="grid cols2">
             <div class="field">
-              <div class="label">名称</div>
-              <input class="input" name="name" placeholder="产品名称" th:value="${form.name}" />
-              <div class="hint">必填，1-50 字符。</div>
+              <div class="label">分类</div>
+              <select class="select" name="categoryId">
+                <option value="">请选择分类</option>
+                <option th:each="c : ${categories}"
+                        th:value="${c.id}"
+                        th:text="${c.name}"
+                        th:selected="${form.categoryId != null and form.categoryId == c.id}">分类名称</option>
+              </select>
+              <div class="hint">必填，请选择有效分类。</div>
             </div>
             <div class="field">
               <div class="label">状态</div>
@@ -49,15 +55,24 @@
 
           <div class="grid cols2">
             <div class="field">
-              <div class="label">价格</div>
-              <input class="input" name="price" placeholder="例如 1999.00" th:value="${form.price}" />
-              <div class="hint">decimal(10,2)。</div>
+              <div class="label">名称</div>
+              <input class="input" name="name" placeholder="产品名称" th:value="${form.name}" />
+              <div class="hint">必填，1-50 字符。</div>
             </div>
             <div class="field">
               <div class="label">库存</div>
               <input class="input" name="stock" placeholder="例如 100" th:value="${form.stock}" />
               <div class="hint">int。</div>
             </div>
+          </div>
+
+          <div class="grid cols2">
+            <div class="field">
+              <div class="label">价格</div>
+              <input class="input" name="price" placeholder="例如 1999.00" th:value="${form.price}" />
+              <div class="hint">decimal(10,2)。</div>
+            </div>
+            <div class="field"></div>
           </div>
 
           <div class="field">

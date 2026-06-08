@@ -10,6 +10,8 @@ public interface ProductService {
 
     Product getByIdOrThrow(Long id);
 
+    Product getByIdWithCategory(Long id);
+
     void create(ProductForm form);
 
     void update(Long id, ProductForm form);

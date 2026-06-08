@@ -10,6 +10,8 @@ import java.math.BigDecimal;
 
 public record ProductForm(
         Long id,
+        @NotNull(message = "请选择分类")
+        Long categoryId,
         @NotBlank(message = "名称不能为空")
         @Size(min = 1, max = 50, message = "名称长度需为 1-50")
         String name,
@@ -25,11 +27,11 @@ public record ProductForm(
         String status
 ) {
     public static ProductForm empty() {
-        return new ProductForm(null, "", "", BigDecimal.ZERO, 0, "ACTIVE");
+        return new ProductForm(null, null, "", "", BigDecimal.ZERO, 0, "ACTIVE");
     }
 
     public static ProductForm fromEntity(Product p) {
-        return new ProductForm(p.getId(), p.getName(), p.getDescription(), p.getPrice(), p.getStock(), p.getStatus());
+        return new ProductForm(p.getId(), p.getCategoryId(), p.getName(), p.getDescription(), p.getPrice(), p.getStock(), p.getStatus());
     }
 }
 

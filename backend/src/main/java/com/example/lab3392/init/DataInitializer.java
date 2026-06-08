@@ -54,8 +54,8 @@ public class DataInitializer implements ApplicationRunner {
         ensureUserRole(admin.getId(), userRole.getId());
         ensureUserRole(user.getId(), userRole.getId());
 
-        ensureProducts();
         ensureCategories();
+        ensureProducts();
         log.info("Seed data ready.");
     }
 
@@ -93,12 +93,25 @@ public class DataInitializer implements ApplicationRunner {
     }
 
     private void ensureProducts() {
+        List<ProductCategory> activeCategories = categoryMapper.selectList(
+                new LambdaQueryWrapper<ProductCategory>().eq(ProductCategory::getStatus, "ACTIVE")
+        );
+        if (activeCategories.isEmpty()) {
+            log.warn("No active categories found, skipping product initialization");
+            return;
+        }
+        Long laptopCatId = findCategoryIdByCode(activeCategories, "LAPTOP");
+        Long accessoryCatId = findCategoryIdByCode(activeCategories, "ACCESSORY");
+        Long monitorCatId = findCategoryIdByCode(activeCategories, "MONITOR");
+        Long mobileCatId = findCategoryIdByCode(activeCategories, "MOBILE");
+        Long defaultCatId = activeCategories.get(0).getId();
+
         List<Product> base = List.of(
-                build("Aurora Pro", "轻量科技风笔记本，适合开发与演示。", new BigDecimal("6999.00"), 30, "ACTIVE"),
-                build("Neon Dock", "多口扩展坞，稳定供电与高速传输。", new BigDecimal("399.00"), 120, "ACTIVE"),
-                build("Quantum Mouse", "低延迟电竞鼠标，舒适手感。", new BigDecimal("259.00"), 80, "ACTIVE"),
-                build("Cloud Keyboard", "静音机械键盘，办公效率提升。", new BigDecimal("499.00"), 55, "ACTIVE"),
-                build("Pulse Monitor", "超宽屏显示器，沉浸式工作流。", new BigDecimal("1999.00"), 18, "INACTIVE")
+                build(laptopCatId, "Aurora Pro", "轻量科技风笔记本，适合开发与演示。", new BigDecimal("6999.00"), 30, "ACTIVE"),
+                build(accessoryCatId, "Neon Dock", "多口扩展坞，稳定供电与高速传输。", new BigDecimal("399.00"), 120, "ACTIVE"),
+                build(accessoryCatId, "Quantum Mouse", "低延迟电竞鼠标，舒适手感。", new BigDecimal("259.00"), 80, "ACTIVE"),
+                build(accessoryCatId, "Cloud Keyboard", "静音机械键盘，办公效率提升。", new BigDecimal("499.00"), 55, "ACTIVE"),
+                build(monitorCatId, "Pulse Monitor", "超宽屏显示器，沉浸式工作流。", new BigDecimal("1999.00"), 18, "INACTIVE")
         );
         for (Product p : base) {
             if (productMapper.selectCount(new LambdaQueryWrapper<Product>().eq(Product::getName, p.getName())) == 0) {
@@ -110,10 +123,14 @@ public class DataInitializer implements ApplicationRunner {
             String name = "Tech Item " + i;
             if (productMapper.selectCount(new LambdaQueryWrapper<Product>().eq(Product::getName, name)) > 0) continue;
 
+            Long categoryId = (i % 4 == 0) ? mobileCatId : (i % 3 == 0 ? monitorCatId : (i % 2 == 0 ? accessoryCatId : laptopCatId));
+            if (categoryId == null) categoryId = defaultCatId;
+
             String status = (i % 7 == 0) ? "INACTIVE" : "ACTIVE";
             BigDecimal price = new BigDecimal(String.format("%d.00", 99 + (i * 37) % 3900));
             int stock = 10 + (i * 3) % 200;
             productMapper.insert(build(
+                    categoryId,
                     name,
                     "演示数据条目 #" + i + "（用于分页与查询测试）。",
                     price,
@@ -123,8 +140,17 @@ public class DataInitializer implements ApplicationRunner {
         }
     }
 
-    private static Product build(String name, String desc, BigDecimal price, int stock, String status) {
+    private Long findCategoryIdByCode(List<ProductCategory> categories, String code) {
+        return categories.stream()
+                .filter(c -> code.equals(c.getCode()))
+                .map(ProductCategory::getId)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static Product build(Long categoryId, String name, String desc, BigDecimal price, int stock, String status) {
         Product p = new Product();
+        p.setCategoryId(categoryId);
         p.setName(name);
         p.setDescription(desc);
         p.setPrice(price);

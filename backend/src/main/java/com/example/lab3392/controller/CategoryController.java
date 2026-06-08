@@ -89,8 +89,12 @@ public class CategoryController {
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/categories/{id}/delete")
     public String delete(@PathVariable Long id, RedirectAttributes ra) {
-        categoryService.delete(id);
-        ra.addFlashAttribute("flashOk", "删除成功");
+        try {
+            categoryService.delete(id);
+            ra.addFlashAttribute("flashOk", "删除成功");
+        } catch (IllegalStateException ex) {
+            ra.addFlashAttribute("flashBad", ex.getMessage());
+        }
         return "redirect:/categories";
     }
 }

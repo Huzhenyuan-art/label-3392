@@ -7,9 +7,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.example.lab3392.dto.CategoryForm;
 import com.example.lab3392.dto.CategoryQuery;
+import com.example.lab3392.entity.Product;
 import com.example.lab3392.entity.ProductCategory;
 import com.example.lab3392.mapper.ProductCategoryMapper;
+import com.example.lab3392.mapper.ProductMapper;
 import com.example.lab3392.testsupport.DbTestSupport;
+import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,6 +27,9 @@ class ProductCategoryServiceImplTest extends DbTestSupport {
 
     @Autowired
     ProductCategoryMapper categoryMapper;
+
+    @Autowired
+    ProductMapper productMapper;
 
     @Test
     void search_filtersByNameAndCode_andPaginates() {
@@ -53,6 +60,36 @@ class ProductCategoryServiceImplTest extends DbTestSupport {
 
         categoryService.delete(created.getId());
         assertThat(categoryMapper.selectById(created.getId())).isNull();
+    }
+
+    @Test
+    void delete_rejectsWhenHasProducts() {
+        ProductCategory category = insertCategory("测试分类", "TEST", 1);
+
+        Product p = new Product();
+        p.setCategoryId(category.getId());
+        p.setName("测试产品");
+        p.setPrice(new BigDecimal("99.00"));
+        p.setStock(10);
+        p.setStatus("ACTIVE");
+        productMapper.insert(p);
+
+        assertThat(categoryService.hasProducts(category.getId())).isTrue();
+        assertThatThrownBy(() -> categoryService.delete(category.getId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("存在产品");
+
+        assertThat(categoryMapper.selectById(category.getId())).isNotNull();
+    }
+
+    @Test
+    void listAllActive_returnsOnlyActiveCategories() {
+        insertCategory("Active1", "ACT1", 1);
+        insertCategory("Inactive", "INACT", 2, "INACTIVE");
+        insertCategory("Active2", "ACT2", 3);
+
+        List<ProductCategory> active = categoryService.listAllActive();
+        assertThat(active).extracting(ProductCategory::getCode).containsExactly("ACT1", "ACT2");
     }
 
     @Test
@@ -89,12 +126,17 @@ class ProductCategoryServiceImplTest extends DbTestSupport {
         assertThat(p3.getRecords()).hasSize(5);
     }
 
-    private void insertCategory(String name, String code, int sortOrder) {
+    private ProductCategory insertCategory(String name, String code, int sortOrder) {
+        return insertCategory(name, code, sortOrder, "ACTIVE");
+    }
+
+    private ProductCategory insertCategory(String name, String code, int sortOrder, String status) {
         ProductCategory c = new ProductCategory();
         c.setName(name);
         c.setCode(code);
         c.setSortOrder(sortOrder);
-        c.setStatus("ACTIVE");
+        c.setStatus(status);
         categoryMapper.insert(c);
+        return c;
     }
 }

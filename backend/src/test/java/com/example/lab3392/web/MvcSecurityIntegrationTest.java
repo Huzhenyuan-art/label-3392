@@ -13,9 +13,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.lab3392.entity.Product;
+import com.example.lab3392.entity.ProductCategory;
 import com.example.lab3392.entity.Role;
 import com.example.lab3392.entity.User;
 import com.example.lab3392.entity.UserRole;
+import com.example.lab3392.mapper.ProductCategoryMapper;
 import com.example.lab3392.mapper.ProductMapper;
 import com.example.lab3392.mapper.RoleMapper;
 import com.example.lab3392.mapper.UserMapper;
@@ -23,6 +25,7 @@ import com.example.lab3392.mapper.UserRoleMapper;
 import com.example.lab3392.testsupport.DbTestSupport;
 import java.math.BigDecimal;
 import jakarta.servlet.http.Cookie;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -54,6 +57,28 @@ class MvcSecurityIntegrationTest extends DbTestSupport {
 
     @Autowired
     ProductMapper productMapper;
+
+    @Autowired
+    ProductCategoryMapper categoryMapper;
+
+    Long testCategoryId;
+
+    @BeforeEach
+    void setUp() {
+        testCategoryId = null;
+    }
+
+    Long ensureTestCategory() {
+        if (testCategoryId != null) return testCategoryId;
+        ProductCategory c = new ProductCategory();
+        c.setName("测试分类");
+        c.setCode("TEST_CAT");
+        c.setSortOrder(1);
+        c.setStatus("ACTIVE");
+        categoryMapper.insert(c);
+        testCategoryId = c.getId();
+        return testCategoryId;
+    }
 
     @Test
     void anonymous_isRedirectedToLogin_whenAccessingProtectedPage() throws Exception {
@@ -89,6 +114,7 @@ class MvcSecurityIntegrationTest extends DbTestSupport {
     void login_withRememberMe_setsCookie_andAllowsAdminCrud() throws Exception {
         Role admin = ensureRole("ADMIN", "管理员");
         Role userRole = ensureRole("USER", "普通用户");
+        Long catId = ensureTestCategory();
 
         User u = new User();
         u.setUsername("admin");
@@ -115,6 +141,7 @@ class MvcSecurityIntegrationTest extends DbTestSupport {
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/products").session(session).with(csrf())
+                        .param("categoryId", catId.toString())
                         .param("name", "Test Product")
                         .param("description", "desc")
                         .param("price", "9.99")
@@ -126,12 +153,14 @@ class MvcSecurityIntegrationTest extends DbTestSupport {
         Product p = productMapper.selectOne(new LambdaQueryWrapper<Product>().eq(Product::getName, "Test Product"));
         assertThat(p).isNotNull();
         assertThat(p.getPrice()).isEqualByComparingTo(new BigDecimal("9.99"));
+        assertThat(p.getCategoryId()).isEqualTo(catId);
     }
 
     @Test
     void csrf_isRequired_forStateChangingRequests() throws Exception {
         Role admin = ensureRole("ADMIN", "管理员");
         Role userRole = ensureRole("USER", "普通用户");
+        Long catId = ensureTestCategory();
 
         User u = new User();
         u.setUsername("admin");
@@ -152,6 +181,7 @@ class MvcSecurityIntegrationTest extends DbTestSupport {
         assertThat(session).isNotNull();
 
         mockMvc.perform(post("/products").session(session)
+                        .param("categoryId", catId.toString())
                         .param("name", "No Csrf")
                         .param("description", "desc")
                         .param("price", "1.00")
@@ -242,6 +272,7 @@ class MvcSecurityIntegrationTest extends DbTestSupport {
     void products_list_usesInternalPagination_size10() throws Exception {
         Role admin = ensureRole("ADMIN", "管理员");
         Role userRole = ensureRole("USER", "普通用户");
+        Long catId = ensureTestCategory();
 
         User u = new User();
         u.setUsername("admin");
@@ -254,6 +285,7 @@ class MvcSecurityIntegrationTest extends DbTestSupport {
 
         for (int i = 1; i <= 25; i++) {
             Product p = new Product();
+            p.setCategoryId(catId);
             p.setName("Product " + i);
             p.setDescription("D" + i);
             p.setPrice(new BigDecimal("1.00"));
@@ -284,6 +316,7 @@ class MvcSecurityIntegrationTest extends DbTestSupport {
     void products_detail_page_showsProduct() throws Exception {
         Role admin = ensureRole("ADMIN", "管理员");
         Role userRole = ensureRole("USER", "普通用户");
+        Long catId = ensureTestCategory();
 
         User u = new User();
         u.setUsername("admin");
@@ -295,6 +328,7 @@ class MvcSecurityIntegrationTest extends DbTestSupport {
         ensureUserRole(u.getId(), userRole.getId());
 
         Product p = new Product();
+        p.setCategoryId(catId);
         p.setName("Detail Product");
         p.setDescription("detail desc");
         p.setPrice(new BigDecimal("12.34"));

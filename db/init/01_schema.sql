@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS user_roles (
 
 CREATE TABLE IF NOT EXISTS products (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  category_id BIGINT NOT NULL,
   name VARCHAR(50) NOT NULL,
   description VARCHAR(255) DEFAULT NULL,
   price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
@@ -40,7 +41,10 @@ CREATE TABLE IF NOT EXISTS products (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_products_name (name),
-  INDEX idx_products_price (price)
+  INDEX idx_products_price (price),
+  INDEX idx_products_category_id (category_id),
+  CONSTRAINT fk_products_category FOREIGN KEY (category_id)
+    REFERENCES product_categories(id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS product_categories (

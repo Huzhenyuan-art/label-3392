@@ -67,6 +67,7 @@
               <tr>
                 <th class="col-id">ID</th>
                 <th class="col-name">名称</th>
+                <th class="col-category">分类</th>
                 <th class="col-price">价格</th>
                 <th class="col-stock">库存</th>
                 <th class="col-status">状态</th>
@@ -83,6 +84,7 @@
                     <div class="hint" th:text="${p.description}">Desc</div>
                   </div>
                 </td>
+                <td class="col-category" th:text="${p.categoryName}">-</td>
                 <td class="col-price" th:text="${p.price}">0</td>
                 <td class="col-stock" th:text="${p.stock}">0</td>
                 <td class="col-status">
@@ -101,7 +103,7 @@
                 </td>
               </tr>
               <tr th:if="${page.total == 0}">
-                <td colspan="7" class="hint">暂无数据，尝试调整查询条件。</td>
+                <td colspan="8" class="hint">暂无数据，尝试调整查询条件。</td>
               </tr>
             </tbody>
           </table>
