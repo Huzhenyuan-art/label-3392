@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>个人中心</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+    <script defer src="/assets/app.js"></script>
+    <script defer src="/assets/profile.js"></script>
+  </head>
+  <body class="page-profile">
+    <header class="topbar">
+      <div class="inner">
+        <a class="brand" href="/"><span class="dot"></span><span>个人中心</span></a>
+        <nav class="nav">
+          <a class="btn" href="/products">产品管理</a>
+          <a class="btn" href="/categories">产品分类</a>
+          <a class="btn" href="/cart">购物车</a>
+          <a class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/admin/users">用户管理</a>
+          <a class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/operation-logs">审计日志</a>
+          <div class="pill" th:if="${#authorization.expression('isAuthenticated()')}">
+            <span class="spark"></span><span th:text="'当前用户：' + ${username}">当前用户</span>
+          </div>
+          <form method="post" action="/logout" th:if="${#authorization.expression('isAuthenticated()')}">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            <button class="btn" type="submit">退出</button>
+          </form>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="card pad compact">
+        <div>
+          <h1 class="h1" style="margin-top:8px">个人信息</h1>
+          <p class="sub">查看和修改您的个人信息与登录密码。</p>
+        </div>
+      </section>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items:start">
+        <section class="card pad">
+          <h2 class="h2">基本信息</h2>
+          <div class="field">
+            <div class="label">用户名</div>
+            <input class="input" type="text" th:value="${user.username}" disabled />
+          </div>
+          <form method="post" action="/profile/email" id="emailForm">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            <div class="field">
+              <div class="label">邮箱</div>
+              <input class="input" type="email" name="email" th:value="${profileForm.email}" th:classappend="${emailError} ? ' invalid' : ''" required />
+              <div class="err-inline" th:if="${emailError}" th:text="${emailError}">邮箱错误</div>
+            </div>
+            <div class="field">
+              <div class="label">账号状态</div>
+              <span class="pill" th:classappend="${user.enabled == 1 ? 'status-active' : 'status-inactive'}">
+                <span class="spark"></span>
+                <span th:text="${user.enabled == 1 ? '正常' : '已禁用'}">正常</span>
+              </span>
+            </div>
+            <div class="field">
+              <div class="label">注册时间</div>
+              <input class="input" type="text" th:value="${#temporals.format(user.createdAt, 'yyyy-MM-dd HH:mm')}" disabled />
+            </div>
+            <div class="actions" style="justify-content:flex-end">
+              <button class="btn primary" type="submit">保存邮箱</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card pad">
+          <h2 class="h2">修改密码</h2>
+          <form method="post" action="/profile/password" id="passwordForm">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            <div class="field">
+              <div class="label">旧密码</div>
+              <input class="input" type="password" name="oldPassword" th:classappend="${passwordError} ? ' invalid' : ''" required />
+            </div>
+            <div class="field">
+              <div class="label">新密码</div>
+              <input class="input" type="password" name="newPassword" th:classappend="${passwordError} ? ' invalid' : ''" required minlength="6" />
+            </div>
+            <div class="field">
+              <div class="label">确认新密码</div>
+              <input class="input" type="password" name="confirmPassword" th:classappend="${passwordError} ? ' invalid' : ''" required />
+              <div class="err-inline" th:if="${passwordError}" th:text="${passwordError}">密码错误</div>
+            </div>
+            <div class="actions" style="justify-content:flex-end">
+              <button class="btn primary" type="submit" data-confirm="确定要修改密码吗？">修改密码</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </main>
+
+    <script th:if="${flashOk}" th:inline="javascript">
+      window.AppToast && window.AppToast.ok([[${flashOk}]]);
+    </script>
+    <script th:if="${flashBad}" th:inline="javascript">
+      window.AppToast && window.AppToast.bad([[${flashBad}]]);
+    </script>
+  </body>
+</html>

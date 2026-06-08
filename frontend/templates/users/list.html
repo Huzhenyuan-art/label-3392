@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>用户管理</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+    <script defer src="/assets/app.js"></script>
+    <script defer src="/assets/users.js"></script>
+  </head>
+  <body class="page-users">
+    <header class="topbar">
+      <div class="inner">
+        <a class="brand" href="/"><span class="dot"></span><span>用户管理</span></a>
+        <nav class="nav">
+          <a class="btn" href="/products">产品管理</a>
+          <a class="btn" href="/categories">产品分类</a>
+          <a class="btn" href="/cart">购物车</a>
+          <a class="btn" href="/profile">个人中心</a>
+          <a class="btn" href="/operation-logs">审计日志</a>
+          <div class="pill" th:if="${#authorization.expression('isAuthenticated()')}">
+            <span class="spark"></span><span th:text="'当前用户：' + ${username}">当前用户</span>
+          </div>
+          <form method="post" action="/logout" th:if="${#authorization.expression('isAuthenticated()')}">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            <button class="btn" type="submit">退出</button>
+          </form>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="card pad compact">
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:10px; flex-wrap:wrap">
+          <div>
+            <h1 class="h1" style="margin-top:8px">用户列表</h1>
+            <p class="sub">支持用户名、邮箱模糊查询，按状态筛选，分页浏览，可启用/禁用用户账号。</p>
+          </div>
+          <div class="pill">
+            <span class="spark"></span><span>管理员权限</span>
+          </div>
+        </div>
+
+        <form method="get" action="/admin/users" class="searchbar" style="margin-top:8px">
+          <div class="field inline">
+            <div class="label">用户名（模糊）</div>
+            <input class="input sm w-200" name="username" placeholder="例如：admin" th:value="${usernameRaw}" />
+          </div>
+
+          <div class="field inline">
+            <div class="label">邮箱（模糊）</div>
+            <input class="input sm w-240" name="email" placeholder="例如：example.com" th:value="${emailRaw}" />
+          </div>
+
+          <div class="field inline">
+            <div class="label">状态</div>
+            <select class="input sm w-120" name="enabled">
+              <option value="" th:selected="${enabledRaw == null}">全部</option>
+              <option value="1" th:selected="${enabledRaw != null and enabledRaw == 1}">启用</option>
+              <option value="0" th:selected="${enabledRaw != null and enabledRaw == 0}">禁用</option>
+            </select>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" type="submit">查询</button>
+            <a class="btn" href="/admin/users">重置</a>
+          </div>
+        </form>
+      </section>
+
+      <section class="card pad table-card fixed">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="col-id">ID</th>
+                <th class="col-username">用户名</th>
+                <th class="col-email">邮箱</th>
+                <th class="col-status">状态</th>
+                <th class="col-created">注册时间</th>
+                <th class="col-updated">更新时间</th>
+                <th class="col-actions">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="u : ${page.records}">
+                <td class="col-id" th:text="${u.id}">1</td>
+                <td class="col-username">
+                  <span class="label" th:text="${u.username}">username</span>
+                </td>
+                <td class="col-email" th:text="${u.email}">email@example.com</td>
+                <td class="col-status">
+                  <span class="pill" th:classappend="${u.enabled == 1 ? 'status-active' : 'status-inactive'}">
+                    <span class="spark"></span>
+                    <span th:text="${u.enabled == 1 ? '启用' : '禁用'}">启用</span>
+                  </span>
+                </td>
+                <td class="col-created" th:text="${#temporals.format(u.createdAt, 'yyyy-MM-dd HH:mm')}">time</td>
+                <td class="col-updated" th:text="${#temporals.format(u.updatedAt, 'yyyy-MM-dd HH:mm')}">time</td>
+                <td class="col-actions">
+                  <div style="display:flex; gap:8px; flex-wrap:wrap">
+                    <form method="post" th:action="@{'/admin/users/' + ${u.id} + '/toggle'}">
+                      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                      <button class="btn" th:classappend="${u.enabled == 1 ? 'warning' : 'primary'}" type="submit"
+                              th:data-confirm="${u.enabled == 1 ? '确定要禁用该用户吗？' : '确定要启用该用户吗？'}">
+                        <span th:text="${u.enabled == 1 ? '禁用' : '启用'}">禁用</span>
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              <tr th:if="${page.total == 0}">
+                <td colspan="7" class="hint">暂无数据，尝试调整查询条件。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
+          <div class="hint" th:text="'共 ' + ${page.total} + ' 条，当前第 ' + (${page.current}) + ' / ' + ${page.pages} + ' 页'">分页</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <a class="btn" th:href="@{/admin/users(username=${usernameRaw},email=${emailRaw},enabled=${enabledRaw},page=1)}">首页</a>
+            <a class="btn" th:if="${page.current > 1}" th:href="@{/admin/users(username=${usernameRaw},email=${emailRaw},enabled=${enabledRaw},page=${page.current - 1})}">上一页</a>
+            <a class="btn" th:if="${page.current < page.pages}" th:href="@{/admin/users(username=${usernameRaw},email=${emailRaw},enabled=${enabledRaw},page=${page.current + 1})}">下一页</a>
+            <a class="btn" th:href="@{/admin/users(username=${usernameRaw},email=${emailRaw},enabled=${enabledRaw},page=${page.pages})}">末页</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script th:if="${flashOk}" th:inline="javascript">
+      window.AppToast && window.AppToast.ok([[${flashOk}]]);
+    </script>
+    <script th:if="${flashBad}" th:inline="javascript">
+      window.AppToast && window.AppToast.bad([[${flashBad}]]);
+    </script>
+  </body>
+</html>

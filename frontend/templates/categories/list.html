@@ -14,6 +14,8 @@
         <nav class="nav">
           <a class="btn" href="/products">产品管理</a>
           <a class="btn" href="/cart">购物车</a>
+          <a class="btn" href="/profile">个人中心</a>
+          <a class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/admin/users">用户管理</a>
           <a class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/operation-logs">审计日志</a>
           <div class="pill" th:if="${#authorization.expression('isAuthenticated()')}">
             <span class="spark"></span><span th:text="'当前用户：' + ${username}">当前用户</span>
