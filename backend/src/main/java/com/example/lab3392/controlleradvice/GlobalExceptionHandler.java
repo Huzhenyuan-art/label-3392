@@ -16,4 +16,12 @@ public class GlobalExceptionHandler {
         model.addAttribute("path", request.getRequestURI());
         return "error/simple";
     }
+
+    @ExceptionHandler(SecurityException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public String handleSecurityException(SecurityException ex, HttpServletRequest request, Model model) {
+        model.addAttribute("message", ex.getMessage() == null ? "无权执行此操作" : ex.getMessage());
+        model.addAttribute("path", request.getRequestURI());
+        return "error/simple";
+    }
 }
