@@ -43,3 +43,16 @@ CREATE TABLE IF NOT EXISTS products (
   INDEX idx_products_price (price)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS product_categories (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(50) NOT NULL UNIQUE,
+  code VARCHAR(50) NOT NULL UNIQUE,
+  description VARCHAR(255) DEFAULT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_product_categories_name (name),
+  INDEX idx_product_categories_sort_order (sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+

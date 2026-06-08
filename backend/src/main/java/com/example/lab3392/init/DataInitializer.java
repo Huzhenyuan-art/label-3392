@@ -1,9 +1,11 @@
 package com.example.lab3392.init;
 
 import com.example.lab3392.entity.Product;
+import com.example.lab3392.entity.ProductCategory;
 import com.example.lab3392.entity.Role;
 import com.example.lab3392.entity.User;
 import com.example.lab3392.entity.UserRole;
+import com.example.lab3392.mapper.ProductCategoryMapper;
 import com.example.lab3392.mapper.ProductMapper;
 import com.example.lab3392.mapper.RoleMapper;
 import com.example.lab3392.mapper.UserMapper;
@@ -28,13 +30,15 @@ public class DataInitializer implements ApplicationRunner {
     private final UserMapper userMapper;
     private final UserRoleMapper userRoleMapper;
     private final ProductMapper productMapper;
+    private final ProductCategoryMapper categoryMapper;
     private final PasswordEncoder passwordEncoder;
 
-    public DataInitializer(RoleMapper roleMapper, UserMapper userMapper, UserRoleMapper userRoleMapper, ProductMapper productMapper, PasswordEncoder passwordEncoder) {
+    public DataInitializer(RoleMapper roleMapper, UserMapper userMapper, UserRoleMapper userRoleMapper, ProductMapper productMapper, ProductCategoryMapper categoryMapper, PasswordEncoder passwordEncoder) {
         this.roleMapper = roleMapper;
         this.userMapper = userMapper;
         this.userRoleMapper = userRoleMapper;
         this.productMapper = productMapper;
+        this.categoryMapper = categoryMapper;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -51,6 +55,7 @@ public class DataInitializer implements ApplicationRunner {
         ensureUserRole(user.getId(), userRole.getId());
 
         ensureProducts();
+        ensureCategories();
         log.info("Seed data ready.");
     }
 
@@ -126,5 +131,44 @@ public class DataInitializer implements ApplicationRunner {
         p.setStock(stock);
         p.setStatus(status);
         return p;
+    }
+
+    private void ensureCategories() {
+        List<ProductCategory> base = List.of(
+                buildCategory("笔记本电脑", "LAPTOP", "高性能轻薄本与游戏本", 1, "ACTIVE"),
+                buildCategory("外设配件", "ACCESSORY", "鼠标、键盘、扩展坞等", 2, "ACTIVE"),
+                buildCategory("显示器", "MONITOR", "办公与电竞显示器", 3, "ACTIVE"),
+                buildCategory("手机数码", "MOBILE", "智能手机与数码配件", 4, "ACTIVE"),
+                buildCategory("智能穿戴", "WEARABLE", "智能手表、手环等", 5, "INACTIVE")
+        );
+        for (ProductCategory c : base) {
+            if (categoryMapper.selectCount(new LambdaQueryWrapper<ProductCategory>().eq(ProductCategory::getCode, c.getCode())) == 0) {
+                categoryMapper.insert(c);
+            }
+        }
+
+        for (int i = 6; i <= 35; i++) {
+            String code = "CAT" + i;
+            if (categoryMapper.selectCount(new LambdaQueryWrapper<ProductCategory>().eq(ProductCategory::getCode, code)) > 0) continue;
+
+            String status = (i % 8 == 0) ? "INACTIVE" : "ACTIVE";
+            categoryMapper.insert(buildCategory(
+                    "分类 " + i,
+                    code,
+                    "演示分类条目 #" + i + "（用于分页与查询测试）。",
+                    i,
+                    status
+            ));
+        }
+    }
+
+    private static ProductCategory buildCategory(String name, String code, String desc, int sortOrder, String status) {
+        ProductCategory c = new ProductCategory();
+        c.setName(name);
+        c.setCode(code);
+        c.setDescription(desc);
+        c.setSortOrder(sortOrder);
+        c.setStatus(status);
+        return c;
     }
 }

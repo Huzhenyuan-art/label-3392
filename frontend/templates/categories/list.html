@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>产品分类管理</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+    <script defer src="/assets/app.js"></script>
+  </head>
+  <body class="page-categories">
+    <header class="topbar">
+      <div class="inner">
+        <a class="brand" href="/"><span class="dot"></span><span>产品分类管理</span></a>
+        <nav class="nav">
+          <div class="pill" th:if="${#authorization.expression('isAuthenticated()')}">
+            <span class="spark"></span><span th:text="'当前用户：' + ${username}">当前用户</span>
+          </div>
+          <form method="post" action="/logout" th:if="${#authorization.expression('isAuthenticated()')}">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            <button class="btn" type="submit">退出</button>
+          </form>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="card pad compact">
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:10px; flex-wrap:wrap">
+          <div>
+            <h1 class="h1" style="margin-top:8px">分类列表</h1>
+            <p class="sub">支持名称、编码模糊查询，按排序展示，分页浏览。</p>
+          </div>
+          <div th:if="${#authorization.expression('hasRole(''ADMIN'')')}" class="pill">
+            <span class="spark"></span><span>管理员可增删改</span>
+          </div>
+        </div>
+
+        <form method="get" action="/categories" class="searchbar" style="margin-top:8px">
+          <div class="field inline">
+            <div class="label">名称（模糊）</div>
+            <input class="input sm w-280" name="name" placeholder="例如：笔记本" th:value="${nameRaw}" />
+          </div>
+
+          <div class="field inline">
+            <div class="label">编码（模糊）</div>
+            <input class="input sm w-200" name="code" placeholder="例如：LAPTOP" th:value="${codeRaw}" />
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" type="submit">查询</button>
+            <a class="btn" href="/categories">重置</a>
+            <a class="btn primary" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/categories/new">新增分类</a>
+          </div>
+        </form>
+      </section>
+
+      <section class="card pad table-card fixed">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="col-id">ID</th>
+                <th class="col-name">名称</th>
+                <th class="col-code">编码</th>
+                <th class="col-sort">排序</th>
+                <th class="col-status">状态</th>
+                <th class="col-updated">更新时间</th>
+                <th class="col-actions">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="c : ${page.records}">
+                <td class="col-id" th:text="${c.id}">1</td>
+                <td class="col-name">
+                  <div class="cell-name">
+                    <span class="label" th:text="${c.name}">Name</span>
+                    <div class="hint" th:text="${c.description}">Desc</div>
+                  </div>
+                </td>
+                <td class="col-code" th:text="${c.code}">CODE</td>
+                <td class="col-sort" th:text="${c.sortOrder}">0</td>
+                <td class="col-status">
+                  <span class="pill"><span class="spark"></span><span th:text="${c.status == 'ACTIVE' ? '启用' : (c.status == 'INACTIVE' ? '停用' : c.status)}">启用</span></span>
+                </td>
+                <td class="col-updated" th:text="${#temporals.format(c.updatedAt, 'yyyy-MM-dd HH:mm')}">time</td>
+                <td class="col-actions">
+                  <div style="display:flex; gap:8px; flex-wrap:wrap">
+                    <a class="btn" th:href="@{'/categories/' + ${c.id} + '/edit'}" th:if="${#authorization.expression('hasRole(''ADMIN'')')}">编辑</a>
+                    <form method="post" th:action="@{'/categories/' + ${c.id} + '/delete'}" th:if="${#authorization.expression('hasRole(''ADMIN'')')}">
+                      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                      <button class="btn danger" type="submit" data-confirm="确定删除该分类吗？">删除</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              <tr th:if="${page.total == 0}">
+                <td colspan="7" class="hint">暂无数据，尝试调整查询条件。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
+          <div class="hint" th:text="'共 ' + ${page.total} + ' 条，当前第 ' + (${page.current}) + ' / ' + ${page.pages} + ' 页'">分页</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <a class="btn" th:href="@{/categories(name=${q.name},code=${q.code},page=1)}">首页</a>
+            <a class="btn" th:if="${page.current > 1}" th:href="@{/categories(name=${q.name},code=${q.code},page=${page.current - 1})}">上一页</a>
+            <a class="btn" th:if="${page.current < page.pages}" th:href="@{/categories(name=${q.name},code=${q.code},page=${page.current + 1})}">下一页</a>
+            <a class="btn" th:href="@{/categories(name=${q.name},code=${q.code},page=${page.pages})}">末页</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script th:if="${flashOk}" th:inline="javascript">
+      window.AppToast && window.AppToast.ok([[${flashOk}]]);
+    </script>
+    <script th:if="${flashBad}" th:inline="javascript">
+      window.AppToast && window.AppToast.bad([[${flashBad}]]);
+    </script>
+  </body>
+</html>
