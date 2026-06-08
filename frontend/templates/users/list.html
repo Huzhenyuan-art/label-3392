@@ -6,6 +6,7 @@
     <title>用户管理</title>
     <link rel="stylesheet" href="/assets/app.css" />
     <script defer src="/assets/app.js"></script>
+    <script defer src="/assets/notifications.js"></script>
     <script defer src="/assets/users.js"></script>
   </head>
   <body class="page-users">
@@ -18,6 +19,12 @@
           <a class="btn" href="/cart">购物车</a>
           <a class="btn" href="/profile">个人中心</a>
           <a class="btn" href="/operation-logs">审计日志</a>
+          <a class="btn" href="/notifications">
+            <span class="notification-nav-btn">
+              通知
+              <span class="notification-badge" data-role="unread-badge" style="display:none">0</span>
+            </span>
+          </a>
           <div class="pill" th:if="${#authorization.expression('isAuthenticated()')}">
             <span class="spark"></span><span th:text="'当前用户：' + ${username}">当前用户</span>
           </div>

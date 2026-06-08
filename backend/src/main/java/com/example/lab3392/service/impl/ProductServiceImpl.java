@@ -11,6 +11,7 @@ import com.example.lab3392.entity.ProductCategory;
 import com.example.lab3392.mapper.ProductCategoryMapper;
 import com.example.lab3392.mapper.ProductMapper;
 import com.example.lab3392.service.CacheService;
+import com.example.lab3392.service.NotificationService;
 import com.example.lab3392.service.ProductCategoryService;
 import com.example.lab3392.service.ProductService;
 import java.io.BufferedReader;
@@ -27,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -43,15 +45,18 @@ public class ProductServiceImpl implements ProductService {
     private final ProductCategoryMapper categoryMapper;
     private final ProductCategoryService categoryService;
     private final CacheService cacheService;
+    private final NotificationService notificationService;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final String[] CSV_HEADERS = {"名称", "分类", "描述", "价格", "库存", "状态", "创建时间", "更新时间"};
 
     public ProductServiceImpl(ProductMapper productMapper, ProductCategoryMapper categoryMapper,
-                              ProductCategoryService categoryService, CacheService cacheService) {
+                              ProductCategoryService categoryService, CacheService cacheService,
+                              NotificationService notificationService) {
         this.productMapper = productMapper;
         this.categoryMapper = categoryMapper;
         this.categoryService = categoryService;
         this.cacheService = cacheService;
+        this.notificationService = notificationService;
     }
 
     private void populateCategoryNames(List<Product> products) {
@@ -135,8 +140,12 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @CacheEvict(cacheNames = {"productPagesV5", "productPagesV4", "productPagesV3", "productPagesV2", "productPages"}, allEntries = true)
+    @Transactional
     public void update(Long id, ProductForm form) {
         Product existing = getByIdOrThrow(id);
+        Integer oldStock = existing.getStock();
+        String oldStatus = existing.getStatus();
+
         validateCategory(form.categoryId());
         existing.setCategoryId(form.categoryId());
         existing.setName(form.name().trim());
@@ -145,14 +154,54 @@ public class ProductServiceImpl implements ProductService {
         existing.setStock(form.stock());
         existing.setStatus(form.status());
         productMapper.updateById(existing);
+
+        boolean stockChanged = !Objects.equals(oldStock, form.stock());
+        boolean statusChanged = !Objects.equals(oldStatus, form.status());
+
+        if (stockChanged || statusChanged) {
+            StringBuilder title = new StringBuilder();
+            StringBuilder content = new StringBuilder();
+            title.append("产品「").append(existing.getName()).append("」");
+
+            List<String> changes = new ArrayList<>();
+            if (stockChanged) {
+                changes.add(String.format("库存从 %d 变更为 %d", oldStock, form.stock()));
+            }
+            if (statusChanged) {
+                String oldStatusText = "ACTIVE".equals(oldStatus) ? "启用" : "停用";
+                String newStatusText = "ACTIVE".equals(form.status()) ? "启用" : "停用";
+                changes.add(String.format("状态从 %s 变更为 %s", oldStatusText, newStatusText));
+            }
+
+            title.append("信息已更新");
+            content.append(String.join("；", changes));
+
+            notificationService.createNotificationsForAllUsers(
+                    "PRODUCT_UPDATE",
+                    title.toString(),
+                    content.toString(),
+                    id
+            );
+            cacheService.evictNotificationCachesForProduct(id);
+        }
     }
 
     @Override
     @CacheEvict(cacheNames = {"productPagesV5", "productPagesV4", "productPagesV3", "productPagesV2", "productPages"}, allEntries = true)
+    @Transactional
     public void delete(Long id) {
         Product existing = productMapper.selectById(id);
         if (existing == null) return;
+        String productName = existing.getName();
         productMapper.deleteById(id);
+
+        notificationService.createNotificationsForAllUsers(
+                "PRODUCT_DELETE",
+                "产品「" + productName + "」已删除",
+                "该产品已被管理员移除，请注意查看",
+                null
+        );
+        cacheService.evictNotificationCachesForProduct(id);
     }
 
     @Override
@@ -206,6 +255,8 @@ public class ProductServiceImpl implements ProductService {
     public CsvImportResult importCsv(InputStream inputStream) {
         CsvImportResult result = new CsvImportResult();
         List<Product> productsToSave = new ArrayList<>();
+        Map<Long, Integer> oldStockMap = new HashMap<>();
+        Map<Long, String> oldStatusMap = new HashMap<>();
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
              CSVParser csvParser = CSVFormat.EXCEL.builder()
@@ -283,6 +334,8 @@ public class ProductServiceImpl implements ProductService {
 
                     Product product;
                     if (existing != null) {
+                        oldStockMap.put(existing.getId(), existing.getStock());
+                        oldStatusMap.put(existing.getId(), existing.getStatus());
                         product = existing;
                         product.setCategoryId(category.getId());
                         product.setName(normalizedName);
@@ -308,9 +361,42 @@ public class ProductServiceImpl implements ProductService {
                 }
             }
 
+            List<Long> changedProductIds = new ArrayList<>();
             for (Product product : productsToSave) {
                 if (product.getId() != null) {
+                    Integer oldStock = oldStockMap.get(product.getId());
+                    String oldStatus = oldStatusMap.get(product.getId());
+                    boolean stockChanged = !Objects.equals(oldStock, product.getStock());
+                    boolean statusChanged = !Objects.equals(oldStatus, product.getStatus());
+
                     productMapper.updateById(product);
+
+                    if (stockChanged || statusChanged) {
+                        changedProductIds.add(product.getId());
+                        StringBuilder title = new StringBuilder();
+                        StringBuilder content = new StringBuilder();
+                        title.append("产品「").append(product.getName()).append("」");
+
+                        List<String> changes = new ArrayList<>();
+                        if (stockChanged) {
+                            changes.add(String.format("库存从 %d 变更为 %d", oldStock, product.getStock()));
+                        }
+                        if (statusChanged) {
+                            String oldStatusText = "ACTIVE".equals(oldStatus) ? "启用" : "停用";
+                            String newStatusText = "ACTIVE".equals(product.getStatus()) ? "启用" : "停用";
+                            changes.add(String.format("状态从 %s 变更为 %s", oldStatusText, newStatusText));
+                        }
+
+                        title.append("信息已更新");
+                        content.append(String.join("；", changes));
+
+                        notificationService.createNotificationsForAllUsers(
+                                "PRODUCT_UPDATE",
+                                title.toString(),
+                                content.toString(),
+                                product.getId()
+                        );
+                    }
                 } else {
                     productMapper.insert(product);
                 }
@@ -318,6 +404,9 @@ public class ProductServiceImpl implements ProductService {
 
             if (!productsToSave.isEmpty()) {
                 cacheService.evictAllProductCaches();
+            }
+            if (!changedProductIds.isEmpty()) {
+                cacheService.evictAllNotificationCaches();
             }
 
         } catch (IOException e) {

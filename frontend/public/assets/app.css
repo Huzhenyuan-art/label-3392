@@ -612,3 +612,204 @@ input[type="file"]::file-selector-button{
 input[type="file"]::file-selector-button:hover{
   opacity:.9;
 }
+
+/* Notification styles */
+.notification-nav-btn{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.notification-badge{
+  position:absolute;
+  top:-8px;
+  right:-10px;
+  min-width:20px;
+  height:20px;
+  padding:0 6px;
+  border-radius:10px;
+  background:var(--danger);
+  color:white;
+  font-size:11px;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 2px 8px rgba(239,68,68,.4);
+}
+.nav .btn.active{
+  background:rgba(124,58,237,.12);
+  border-color:rgba(124,58,237,.35);
+}
+.notification-list{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.notification-item{
+  padding:14px 16px;
+  border-radius:14px;
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.7);
+  transition:all .15s ease;
+}
+.notification-item.unread{
+  background:rgba(124,58,237,.06);
+  border-color:rgba(124,58,237,.25);
+  box-shadow:0 2px 12px rgba(124,58,237,.08);
+}
+.notification-item.unread::before{
+  content:"";
+  display:inline-block;
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--brand1);
+  margin-right:8px;
+  float:right;
+  margin-top:4px;
+}
+.notification-item:hover{
+  background:rgba(255,255,255,.95);
+  transform:translateY(-1px);
+  box-shadow:0 4px 16px rgba(2,6,23,.08);
+}
+.notification-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:8px;
+}
+.notification-type-badge{
+  display:inline-flex;
+  padding:3px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:600;
+  background:rgba(37,99,235,.1);
+  color:var(--brand0);
+  border:1px solid rgba(37,99,235,.2);
+}
+.notification-type-badge.type-product_update{
+  background:rgba(245,158,11,.1);
+  color:#d97706;
+  border-color:rgba(245,158,11,.2);
+}
+.notification-type-badge.type-product_delete{
+  background:rgba(239,68,68,.1);
+  color:var(--danger);
+  border-color:rgba(239,68,68,.2);
+}
+.notification-time{
+  color:var(--muted);
+  font-size:12px;
+}
+.notification-title{
+  font-size:15px;
+  font-weight:650;
+  margin-bottom:6px;
+  line-height:1.4;
+}
+.notification-content{
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.5;
+  margin-bottom:10px;
+}
+.notification-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.notification-product{
+  font-size:12px;
+}
+.notification-actions{
+  display:flex;
+  gap:8px;
+}
+.notification-read-status{
+  font-size:11px;
+}
+.empty-state{
+  padding:60px 20px;
+  text-align:center;
+}
+.empty-icon{
+  font-size:48px;
+  margin-bottom:16px;
+  opacity:.5;
+}
+.empty-text{
+  font-size:16px;
+  font-weight:600;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+.empty-hint{
+  font-size:13px;
+  color:var(--muted);
+  opacity:.7;
+}
+.checkbox-label{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  cursor:pointer;
+  font-size:13px;
+}
+.checkbox-label input[type="checkbox"]{
+  width:16px;
+  height:16px;
+  cursor:pointer;
+}
+
+body.page-notifications .container{
+  max-width:none !important;
+  width:100% !important;
+  padding:18px 24px !important;
+}
+body.page-notifications{
+  height:100vh;
+  height:100dvh;
+  width:100%;
+  position:fixed;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+body.page-notifications main.container{
+  flex:1 1 auto;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  min-height:0;
+  overflow:hidden;
+  margin:0 !important;
+}
+body.page-notifications main.container > section.card.compact{flex:0 0 auto}
+body.page-notifications main.container > section.table-card{flex:1 1 auto; min-height:0; overflow:auto}
+@media (max-width: 720px){
+  body.page-notifications .container{padding:14px 16px !important}
+}
+@media (max-width: 480px){
+  body.page-notifications .searchbar{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  body.page-notifications .searchbar .field.inline{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+  body.page-notifications .searchbar .actions{
+    width:100%;
+    justify-content:stretch;
+  }
+  body.page-notifications .searchbar .actions .btn{
+    flex:1;
+  }
+}

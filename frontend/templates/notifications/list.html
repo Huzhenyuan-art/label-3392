@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>通知中心</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+    <script defer src="/assets/app.js"></script>
+    <script defer src="/assets/notifications.js"></script>
+  </head>
+  <body class="page-notifications">
+    <header class="topbar">
+      <div class="inner">
+        <a class="brand" href="/"><span class="dot"></span><span>产品管理</span></a>
+        <nav class="nav">
+          <a class="btn" href="/products">产品管理</a>
+          <a class="btn" href="/categories">产品分类</a>
+          <a class="btn" href="/cart">购物车</a>
+          <a class="btn" href="/profile">个人中心</a>
+          <a class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/admin/users">用户管理</a>
+          <a class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/operation-logs">审计日志</a>
+          <a class="btn active" href="/notifications">
+            <span class="notification-nav-btn">
+              通知中心
+              <span class="notification-badge" data-role="unread-badge" th:if="${unreadCount > 0}" th:text="${unreadCount > 99 ? '99+' : unreadCount}">0</span>
+            </span>
+          </a>
+          <div class="pill" th:if="${#authorization.expression('isAuthenticated()')}">
+            <span class="spark"></span><span th:text="'当前用户：' + ${username}">当前用户</span>
+          </div>
+          <form method="post" action="/logout" th:if="${#authorization.expression('isAuthenticated()')}">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            <button class="btn" type="submit">退出</button>
+          </form>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="card pad compact">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap">
+          <div>
+            <h1 class="h1" style="margin-top:8px">通知中心</h1>
+            <p class="sub">查看系统通知，标记已读，支持筛选未读通知。</p>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center">
+            <div class="pill" th:classappend="${unreadCount > 0 ? 'status-inactive' : 'status-active'}">
+              <span class="spark"></span><span>未读: <b th:text="${unreadCount}">0</b> 条</span>
+            </div>
+            <form method="post" action="/notifications/mark-all-read" th:if="${unreadCount > 0}">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+              <button class="btn" type="submit" data-confirm="确定将所有通知标记为已读吗？">全部已读</button>
+            </form>
+          </div>
+        </div>
+
+        <form method="get" action="/notifications" class="searchbar" style="margin-top:8px">
+          <div class="field inline">
+            <div class="label">筛选</div>
+            <label class="checkbox-label">
+              <input type="checkbox" name="unreadOnly" value="true" th:checked="${unreadOnly}" />
+              <span>仅显示未读</span>
+            </label>
+          </div>
+
+          <div class="field inline">
+            <div class="label">每页条数</div>
+            <select class="input sm" name="pageSize" id="pageSizeSelect">
+              <option value="10" th:selected="${pageSize == 10}">10 条/页</option>
+              <option value="20" th:selected="${pageSize == 20}">20 条/页</option>
+              <option value="50" th:selected="${pageSize == 50}">50 条/页</option>
+            </select>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" type="submit">查询</button>
+            <a class="btn" href="/notifications">重置</a>
+          </div>
+        </form>
+      </section>
+
+      <section class="card pad table-card">
+        <div class="notification-list" data-role="notification-list">
+          <div th:if="${page.total == 0}" class="empty-state">
+            <div class="empty-icon">🔔</div>
+            <div class="empty-text">暂无通知</div>
+            <div class="empty-hint">当有产品信息更新时，会在这里显示通知</div>
+          </div>
+
+          <div th:each="n : ${page.records}" class="notification-item" th:classappend="${n.isRead == 0 ? 'unread' : 'read'}" data-notification-id="${n.id}">
+            <div class="notification-header">
+              <div class="notification-type-badge" th:classappend="'type-' + ${n.type?.toLowerCase()}">
+                <span th:text="${n.type == 'PRODUCT_UPDATE' ? '产品更新' : (n.type == 'PRODUCT_DELETE' ? '产品删除' : n.type)}">通知</span>
+              </div>
+              <span class="notification-time" th:text="${#temporals.format(n.createdAt, 'yyyy-MM-dd HH:mm:ss')}">时间</span>
+            </div>
+            <div class="notification-title" th:text="${n.title}">标题</div>
+            <div class="notification-content" th:text="${n.content}">内容</div>
+            <div class="notification-footer">
+              <div class="notification-product" th:if="${n.productId != null}">
+                <span class="hint">相关产品: </span>
+                <a class="link" th:href="@{'/products/' + ${n.productId}}" th:text="${n.productName}">产品名</a>
+              </div>
+              <div class="notification-actions" th:if="${n.isRead == 0}">
+                <form method="post" th:action="@{'/notifications/' + ${n.id} + '/read'}" data-role="mark-read-form">
+                  <input type="hidden" name="page" th:value="${page.current}" />
+                  <input type="hidden" name="pageSize" th:value="${pageSize}" />
+                  <input type="hidden" name="unreadOnly" th:value="${unreadOnly}" />
+                  <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                  <button class="btn sm" type="submit">标记已读</button>
+                </form>
+              </div>
+              <span class="notification-read-status" th:if="${n.isRead == 1}">
+                <span class="pill status-active"><span class="spark"></span><span>已读</span></span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div th:if="${page.total > 0}" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:16px">
+          <div class="hint" th:text="'共 ' + ${page.total} + ' 条，当前第 ' + (${page.current}) + ' / ' + ${page.pages} + ' 页'">分页</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <a class="btn" th:href="@{/notifications(unreadOnly=${unreadOnly},pageSize=${pageSize},page=1)}">首页</a>
+            <a class="btn" th:if="${page.current > 1}" th:href="@{/notifications(unreadOnly=${unreadOnly},pageSize=${pageSize},page=${page.current - 1})}">上一页</a>
+            <a class="btn" th:if="${page.current < page.pages}" th:href="@{/notifications(unreadOnly=${unreadOnly},pageSize=${pageSize},page=${page.current + 1})}">下一页</a>
+            <a class="btn" th:href="@{/notifications(unreadOnly=${unreadOnly},pageSize=${pageSize},page=${page.pages})}">末页</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script th:if="${flashOk}" th:inline="javascript">
+      window.AppToast && window.AppToast.ok([[${flashOk}]]);
+    </script>
+    <script th:if="${flashBad}" th:inline="javascript">
+      window.AppToast && window.AppToast.bad([[${flashBad}]]);
+    </script>
+  </body>
+</html>

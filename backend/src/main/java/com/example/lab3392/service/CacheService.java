@@ -9,6 +9,9 @@ public class CacheService {
     private static final String[] PRODUCT_CACHE_NAMES = {
             "productPagesV5", "productPagesV4", "productPagesV3", "productPagesV2", "productPages"
     };
+    private static final String[] NOTIFICATION_CACHE_NAMES = {
+            "notificationPagesV1", "notificationUnreadV1"
+    };
 
     public CacheService(CacheManager cacheManager) {
         this.cacheManager = cacheManager;
@@ -21,5 +24,18 @@ public class CacheService {
                 cache.clear();
             }
         }
+    }
+
+    public void evictAllNotificationCaches() {
+        for (String cacheName : NOTIFICATION_CACHE_NAMES) {
+            var cache = cacheManager.getCache(cacheName);
+            if (cache != null) {
+                cache.clear();
+            }
+        }
+    }
+
+    public void evictNotificationCachesForProduct(Long productId) {
+        evictAllNotificationCaches();
     }
 }
