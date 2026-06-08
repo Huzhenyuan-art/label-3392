@@ -159,6 +159,49 @@
 
 ---
 
+### 修复 #005: 数据库初始化脚本表创建顺序错误 + 已有数据缺失 category_id 导致容器启动失败
+
+**修复时间**: 2026-06-08
+
+**问题描述**:
+- 新增 `products.category_id` 外键约束后，容器启动失败
+- 错误场景1（全新部署）：`01_schema.sql` 中先创建 `products` 表后创建 `product_categories` 表，导致外键约束引用不存在的表
+- 错误场景2（已有数据升级）：数据库 volume 已存在，init 脚本不会重新执行，导致旧数据库中 `products` 表缺少 `category_id` 字段，或已有产品数据未分配分类
+- 两种场景都会导致后端启动时因数据库约束或数据完整性问题失败
+
+**根本原因**:
+1. **表创建顺序错误**：`01_schema.sql` 第33行创建 `products` 表时，第46行的外键约束 `REFERENCES product_categories(id)` 引用的表在第50行才创建，MySQL 执行失败
+2. **升级路径缺失**：MySQL `docker-entrypoint-initdb.d` 脚本仅在首次初始化（volume 为空）时执行，已有数据库升级时不会自动添加新列和修复数据
+3. **数据完整性问题**：已有产品数据缺少 `category_id`，违反 `NOT NULL` 约束和外键引用完整性
+
+**修复方案**:
+1. **调整表创建顺序**：在 `01_schema.sql` 中先创建 `product_categories` 表，再创建 `products` 表，确保外键引用的表已存在
+2. **创建 SQL 升级脚本**：新增 `03_upgrade_add_category.sql`，使用存储过程检测列是否存在，不存在则自动添加 `category_id` 列、索引和外键约束，并修复 NULL 数据
+3. **应用层自动修复**：在 `DataInitializer` 中新增 `ensureProductCategorySchema()` 方法，在应用启动时：
+   - 检测 `products` 表是否有 `category_id` 列，无则自动 `ALTER TABLE` 添加
+   - 自动创建"未分类"默认分类用于数据迁移
+   - 修复 `category_id` 为 NULL 或 0 的孤立产品
+   - 修复引用不存在分类的无效产品数据
+4. **双重保护机制**：SQL 脚本和应用层修复同时存在，覆盖全新部署和已有数据升级两种场景
+
+**影响文件**:
+
+| 文件路径 | 修改内容 |
+|----------|----------|
+| `db/init/01_schema.sql` | 调整表创建顺序，先创建 `product_categories` 再创建 `products` |
+| `db/init/03_upgrade_add_category.sql` | 新增存储过程升级脚本，处理已有数据库的 schema 升级 |
+| `backend/src/main/java/com/example/lab3392/init/DataInitializer.java` | 新增 `ensureProductCategorySchema()`、`getOrCreateDefaultCategoryId()`、`repairOrphanProducts()` 方法，启动时自动检测并修复 schema 和数据 |
+
+**修复状态**: ✅ 已完成
+
+**验证结果**:
+- 场景1（全新部署）：表创建顺序正确，外键约束创建成功
+- 场景2（已有数据升级）：应用启动时自动检测并添加 `category_id` 列，自动修复孤立产品数据
+- 所有 29 个测试通过
+- 容器启动成功，无数据库错误
+
+---
+
 ## 修复登记模板
 
 > 后续修复请复制以下模板并填写：

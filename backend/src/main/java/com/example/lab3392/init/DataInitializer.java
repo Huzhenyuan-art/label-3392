@@ -13,10 +13,12 @@ import com.example.lab3392.mapper.UserRoleMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.context.annotation.Profile;
@@ -32,18 +34,21 @@ public class DataInitializer implements ApplicationRunner {
     private final ProductMapper productMapper;
     private final ProductCategoryMapper categoryMapper;
     private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbcTemplate;
 
-    public DataInitializer(RoleMapper roleMapper, UserMapper userMapper, UserRoleMapper userRoleMapper, ProductMapper productMapper, ProductCategoryMapper categoryMapper, PasswordEncoder passwordEncoder) {
+    public DataInitializer(RoleMapper roleMapper, UserMapper userMapper, UserRoleMapper userRoleMapper, ProductMapper productMapper, ProductCategoryMapper categoryMapper, PasswordEncoder passwordEncoder, JdbcTemplate jdbcTemplate) {
         this.roleMapper = roleMapper;
         this.userMapper = userMapper;
         this.userRoleMapper = userRoleMapper;
         this.productMapper = productMapper;
         this.categoryMapper = categoryMapper;
         this.passwordEncoder = passwordEncoder;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public void run(ApplicationArguments args) {
+        ensureProductCategorySchema();
         Role adminRole = ensureRole("ADMIN", "管理员");
         Role userRole = ensureRole("USER", "普通用户");
 
@@ -157,6 +162,102 @@ public class DataInitializer implements ApplicationRunner {
         p.setStock(stock);
         p.setStatus(status);
         return p;
+    }
+
+    private void ensureProductCategorySchema() {
+        try {
+            List<Map<String, Object>> columns = jdbcTemplate.queryForList(
+                    "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS " +
+                    "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products' AND COLUMN_NAME = 'category_id'"
+            );
+
+            if (columns.isEmpty()) {
+                log.info("Adding category_id column to products table...");
+
+                Long defaultCatId = getOrCreateDefaultCategoryId();
+
+                jdbcTemplate.execute(
+                        "ALTER TABLE products ADD COLUMN category_id BIGINT NOT NULL DEFAULT " + defaultCatId
+                );
+                log.info("Added category_id column with default value: {}", defaultCatId);
+
+                try {
+                    jdbcTemplate.execute(
+                            "ALTER TABLE products ADD INDEX idx_products_category_id (category_id)"
+                    );
+                    log.info("Added index idx_products_category_id");
+                } catch (Exception e) {
+                    log.warn("Index may already exist: {}", e.getMessage());
+                }
+
+                try {
+                    jdbcTemplate.execute(
+                            "ALTER TABLE products ADD CONSTRAINT fk_products_category " +
+                            "FOREIGN KEY (category_id) REFERENCES product_categories(id) " +
+                            "ON DELETE RESTRICT ON UPDATE CASCADE"
+                    );
+                    log.info("Added foreign key constraint fk_products_category");
+                } catch (Exception e) {
+                    log.warn("Foreign key may already exist: {}", e.getMessage());
+                }
+
+                log.info("Database schema upgrade completed successfully");
+            } else {
+                log.info("category_id column already exists, checking data integrity...");
+                repairOrphanProducts();
+            }
+        } catch (Exception e) {
+            log.error("Schema upgrade failed", e);
+            throw new RuntimeException("Failed to upgrade database schema for product categories", e);
+        }
+    }
+
+    private Long getOrCreateDefaultCategoryId() {
+        ProductCategory existing = categoryMapper.selectOne(
+                new LambdaQueryWrapper<ProductCategory>()
+                        .eq(ProductCategory::getStatus, "ACTIVE")
+                        .orderByAsc(ProductCategory::getId)
+                        .last("LIMIT 1")
+        );
+        if (existing != null) {
+            return existing.getId();
+        }
+
+        ProductCategory defaultCat = new ProductCategory();
+        defaultCat.setName("未分类");
+        defaultCat.setCode("DEFAULT");
+        defaultCat.setDescription("系统默认分类，用于迁移已有数据");
+        defaultCat.setSortOrder(0);
+        defaultCat.setStatus("ACTIVE");
+        categoryMapper.insert(defaultCat);
+        log.info("Created default category for data migration: {}", defaultCat.getName());
+        return defaultCat.getId();
+    }
+
+    private void repairOrphanProducts() {
+        Long validCatId = getOrCreateDefaultCategoryId();
+
+        int updatedCount = jdbcTemplate.update(
+                "UPDATE products SET category_id = ? WHERE category_id IS NULL OR category_id = 0",
+                validCatId
+        );
+        if (updatedCount > 0) {
+            log.info("Repaired {} orphan products by setting category_id to {}", updatedCount, validCatId);
+        }
+
+        Integer invalidCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM products p " +
+                "WHERE NOT EXISTS (SELECT 1 FROM product_categories c WHERE c.id = p.category_id)",
+                Integer.class
+        );
+        if (invalidCount != null && invalidCount > 0) {
+            jdbcTemplate.update(
+                    "UPDATE products p SET p.category_id = ? " +
+                    "WHERE NOT EXISTS (SELECT 1 FROM product_categories c WHERE c.id = p.category_id)",
+                    validCatId
+            );
+            log.info("Repaired {} products with invalid category references", invalidCount);
+        }
     }
 
     private void ensureCategories() {
