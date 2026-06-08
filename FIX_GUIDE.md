@@ -239,6 +239,53 @@
 
 ---
 
+### 修复 #007: 操作审计日志页面快照默认显示 + 按钮无响应
+
+**修复时间**: 2026-06-08
+
+**问题描述**:
+- 用户进入操作审计日志页面，变更快照直接就显示出来了（默认应该隐藏）
+- 点击「查看详情」和「收起详情」按钮没有任何反应，无法展开或收起快照
+
+**根本原因**:
+1. **Thymeleaf 表达式错误**：`th:data-target-id="'snapshot-' + ${log.id}"` 这种字符串拼接写法在 Thymeleaf 中无法正确渲染 `data-*` 属性，导致 `data-target-id` 属性值为空或错误，JS 无法通过 `document.getElementById(targetId)` 找到对应的元素
+2. **DOM 结构位置错误**：快照面板 `<div class="snapshot-panel">` 独立放在 `table-wrap` 外面，属于 `table-card` 的直接子元素，而 `table-card` 有 `overflow:hidden`，可能导致展开后显示异常
+3. **CSS 样式优先级问题**：`.snapshot-panel { display:none }` 可能被其他样式覆盖，导致默认不隐藏
+4. **快照展开后无法跟随表格滚动**：快照面板独立在表格外，表头吸顶时快照无法正确显示在对应记录下方
+
+**修复方案**:
+1. **修正 Thymeleaf 表达式**：使用 `th:attr="data-target-id=|snapshot-${log.id}|"` 语法，通过 Thymeleaf 字面量替换（`|...|`）正确拼接字符串并设置到 `data-*` 属性上
+2. **重构 DOM 结构**：将快照面板改为表格行内嵌结构，每条记录对应两个 `<tr>`：
+   - 第一个 `<tr>`：显示记录数据（ID、操作类型、操作人、目标、时间、操作按钮）
+   - 第二个 `<tr class="snapshot-row">`：隐藏的展开行，`colspan="6"` 包含完整的快照面板
+   - 使用 `<th:block th:each="log : ${page.records}">` 包裹这两行，确保迭代正确
+3. **更新 CSS 样式**：
+   - 新增 `.snapshot-row { display:none }` 控制展开行默认隐藏
+   - 新增 `.snapshot-row.open { display:table-row }` 控制展开时显示（注意：行元素要用 `table-row` 而不是 `block`）
+   - 新增 `.snapshot-row td` 样式重置内边距和边框
+   - 调整 `.snapshot-panel` 样式，移除 `display:none` 和边框，改为透明背景
+4. **更新 JS 逻辑**：变量名从 `panel` 改为 `row`，明确操作的是表格行元素，保持逻辑清晰
+
+**影响文件**:
+
+| 文件路径 | 修改内容 |
+|----------|----------|
+| `frontend/templates/operation-logs/list.html` | 1) 使用 `th:attr` 语法正确渲染 `data-target-id`；2) 重构 DOM 结构，快照改为表格行内嵌，使用 `th:block` 包裹迭代 |
+| `frontend/public/assets/operation-logs.js` | 变量名从 `panel` 改为 `row`，适配新的表格行结构 |
+| `frontend/public/assets/app.css` | 新增 `.snapshot-row` 相关样式，调整 `.snapshot-panel` 样式 |
+
+**修复状态**: ✅ 已完成
+
+**验证结果**:
+- 进入审计日志页面，所有快照默认隐藏
+- 点击「查看详情」按钮，对应记录下方展开显示变更快照
+- 点击「收起」按钮或再次点击「收起详情」，快照正常收起
+- 按钮文字随展开/收起状态正确切换
+- 快照展开后跟随表格滚动，表头吸顶时显示正常
+- 所有测试通过
+
+---
+
 ## 修复登记模板
 
 > 后续修复请复制以下模板并填写：

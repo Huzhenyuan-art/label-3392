@@ -409,17 +409,24 @@ td.col-actions{overflow:visible}
 
 .footer{color:rgba(11,18,32,.55); font-size:12px; padding:18px 0}
 
-.snapshot-panel{
+.snapshot-row{
   display:none;
-  margin-top:12px;
-  padding:14px;
-  border:1px dashed var(--stroke);
-  border-radius:14px;
-  background:rgba(255,255,255,.55);
 }
-.snapshot-panel.open{
-  display:block;
+.snapshot-row.open{
+  display:table-row;
   animation:pop .15s ease-out;
+}
+.snapshot-row td{
+  padding:0;
+  border-bottom:none;
+  background:rgba(255,255,255,.35);
+}
+.snapshot-panel{
+  margin:0;
+  padding:14px;
+  border:none;
+  border-radius:0;
+  background:transparent;
 }
 .snapshot-json{
   margin:0;

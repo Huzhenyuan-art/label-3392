@@ -80,50 +80,53 @@
               </tr>
             </thead>
             <tbody>
-              <tr th:each="log : ${page.records}">
-                <td class="col-id" th:text="${log.id}">1</td>
-                <td class="col-op-type">
-                  <span class="pill" th:classappend="${log.operationType == 'CREATE' ? 'status-active' : (log.operationType == 'DELETE' ? 'status-inactive' : '')}">
-                    <span class="spark"></span>
-                    <span th:text="${log.operationType == 'CREATE' ? '新增' : (log.operationType == 'UPDATE' ? '修改' : '删除')}">操作</span>
-                  </span>
-                </td>
-                <td class="col-operator" th:text="${log.operatorUsername}">admin</td>
-                <td class="col-target">
-                  <div class="cell-name">
-                    <span class="label" th:text="${log.targetType + ' #' + log.targetId}">PRODUCT #1</span>
-                  </div>
-                </td>
-                <td class="col-created" th:text="${#temporals.format(log.createdAt, 'yyyy-MM-dd HH:mm:ss')}">time</td>
-                <td class="col-actions">
-                  <button class="btn sm toggle-snapshot" type="button" th:data-target-id="'snapshot-' + ${log.id}">查看详情</button>
-                </td>
-              </tr>
+              <th:block th:each="log : ${page.records}">
+                <tr>
+                  <td class="col-id" th:text="${log.id}">1</td>
+                  <td class="col-op-type">
+                    <span class="pill" th:classappend="${log.operationType == 'CREATE' ? 'status-active' : (log.operationType == 'DELETE' ? 'status-inactive' : '')}">
+                      <span class="spark"></span>
+                      <span th:text="${log.operationType == 'CREATE' ? '新增' : (log.operationType == 'UPDATE' ? '修改' : '删除')}">操作</span>
+                    </span>
+                  </td>
+                  <td class="col-operator" th:text="${log.operatorUsername}">admin</td>
+                  <td class="col-target">
+                    <div class="cell-name">
+                      <span class="label" th:text="${log.targetType + ' #' + log.targetId}">PRODUCT #1</span>
+                    </div>
+                  </td>
+                  <td class="col-created" th:text="${#temporals.format(log.createdAt, 'yyyy-MM-dd HH:mm:ss')}">time</td>
+                  <td class="col-actions">
+                    <button class="btn sm toggle-snapshot" type="button" th:attr="data-target-id=|snapshot-${log.id}|">查看详情</button>
+                  </td>
+                </tr>
+                <tr class="snapshot-row" th:id="|snapshot-${log.id}|">
+                  <td colspan="6">
+                    <div class="snapshot-panel">
+                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px">
+                        <span class="label" style="font-weight:650">变更快照</span>
+                        <button class="btn sm close-snapshot" type="button" th:attr="data-target-id=|snapshot-${log.id}|">收起</button>
+                      </div>
+                      <div class="grid cols2 tight">
+                        <div>
+                          <div class="kv-k" style="margin-bottom:6px">变更前</div>
+                          <pre class="snapshot-json" th:if="${log.beforeSnapshot}" th:text="${log.beforeSnapshot}">{"id":1,"name":"产品A"}</pre>
+                          <div class="hint" th:unless="${log.beforeSnapshot}">无（新增操作）</div>
+                        </div>
+                        <div>
+                          <div class="kv-k" style="margin-bottom:6px">变更后</div>
+                          <pre class="snapshot-json" th:if="${log.afterSnapshot}" th:text="${log.afterSnapshot}">{"id":1,"name":"产品B"}</pre>
+                          <div class="hint" th:unless="${log.afterSnapshot}">无（删除操作）</div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </th:block>
               <tr th:if="${page.total == 0}">
                 <td colspan="6" class="hint">暂无数据，尝试调整查询条件。</td>
               </tr>
             </tbody>
-          </table>
-        </div>
-
-        <div class="snapshot-panel" th:each="log : ${page.records}" th:id="'snapshot-' + ${log.id}">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px">
-            <span class="label" style="font-weight:650">变更快照</span>
-            <button class="btn sm close-snapshot" type="button" th:data-target-id="'snapshot-' + ${log.id}">收起</button>
-          </div>
-          <div class="grid cols2 tight">
-            <div>
-              <div class="kv-k" style="margin-bottom:6px">变更前</div>
-              <pre class="snapshot-json" th:if="${log.beforeSnapshot}" th:text="${log.beforeSnapshot}">{"id":1,"name":"产品A"}</pre>
-              <div class="hint" th:unless="${log.beforeSnapshot}">无（新增操作）</div>
-            </div>
-            <div>
-              <div class="kv-k" style="margin-bottom:6px">变更后</div>
-              <pre class="snapshot-json" th:if="${log.afterSnapshot}" th:text="${log.afterSnapshot}">{"id":1,"name":"产品B"}</pre>
-              <div class="hint" th:unless="${log.afterSnapshot}">无（删除操作）</div>
-            </div>
-          </div>
-        </div>
 
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:12px">
           <div class="hint" th:text="'共 ' + ${page.total} + ' 条，当前第 ' + (${page.current}) + ' / ' + ${page.pages} + ' 页'">分页</div>
