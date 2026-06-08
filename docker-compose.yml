@@ -1,0 +1,76 @@
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_DATABASE: "lab3392"
+      TZ: "UTC"
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -uroot -p123456 -D lab3392 -e \"SELECT 1 FROM users LIMIT 1;\" >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: lab3392
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      TZ: "UTC"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  backend-test:
+    image: maven:3.9-eclipse-temurin-17
+    profiles: ["test"]
+    working_dir: /app/backend
+    volumes:
+      - ./:/app
+    environment:
+      SPRING_PROFILES_ACTIVE: test
+      TZ: "UTC"
+    command: ["mvn", "test"]
+
+volumes:
+  db_data:
+  redis_data:

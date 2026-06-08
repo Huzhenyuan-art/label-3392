@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>403 无权限</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+    <script defer src="/assets/app.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <section class="card pad" style="max-width:820px; margin:18px auto">
+        <div class="pill"><span class="spark"></span><span>Access Denied</span></div>
+        <h1 class="h1" style="margin-top:12px">403 · 无权限访问</h1>
+        <p class="sub">当前账号权限不足。若需要增删改，请使用管理员账号登录。</p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px">
+          <a class="btn primary" href="/products">返回产品列表</a>
+          <a class="btn" href="/login">去登录</a>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>
+

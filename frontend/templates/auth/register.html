@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>注册</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+    <script defer src="/assets/app.js"></script>
+    <script defer src="/assets/register.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <section class="card pad" style="max-width:720px; margin:18px auto">
+        <div class="pill"><span class="spark"></span><span>注册账号 · 密码加密存储</span></div>
+        <h1 class="h1" style="margin-top:12px">创建账号</h1>
+        <p class="sub">前端使用 JavaScript 校验格式，后端使用 DTO 校验并写入数据库。</p>
+
+        <form method="post" action="/register" class="grid" style="margin-top:14px" data-register-form>
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+          <div class="grid cols2">
+            <div class="field">
+              <div class="label">用户名</div>
+              <input class="input" name="username" placeholder="3-20 字符" th:value="${form.username}" />
+              <div class="err"></div>
+            </div>
+            <div class="field">
+              <div class="label">邮箱</div>
+              <input class="input" name="email" placeholder="name@example.com" th:value="${form.email}" />
+              <div class="err"></div>
+            </div>
+          </div>
+
+          <div class="grid cols2">
+            <div class="field">
+              <div class="label">密码</div>
+              <input class="input" type="password" name="password" placeholder="至少 6 位" />
+              <div class="err"></div>
+            </div>
+            <div class="field">
+              <div class="label">确认密码</div>
+              <input class="input" type="password" name="confirmPassword" placeholder="再次输入密码" />
+              <div class="err"></div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap">
+            <button class="btn primary" type="submit">注册</button>
+            <a class="btn" href="/login">返回登录</a>
+          </div>
+
+          <div class="hint" th:if="${error}" th:text="${error}"></div>
+        </form>
+      </section>
+    </div>
+  </body>
+</html>
+
