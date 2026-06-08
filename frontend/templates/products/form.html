@@ -43,6 +43,7 @@
                         th:selected="${form.categoryId != null and form.categoryId == c.id}">分类名称</option>
               </select>
               <div class="hint">必填，请选择有效分类。</div>
+              <div class="err-inline" data-role="categoryId-error" style="display:none"></div>
             </div>
             <div class="field">
               <div class="label">状态</div>
@@ -50,6 +51,7 @@
                 <option value="ACTIVE" th:selected="${form.status} == 'ACTIVE'">启用</option>
                 <option value="INACTIVE" th:selected="${form.status} == 'INACTIVE'">停用</option>
               </select>
+              <div class="err-inline" data-role="status-error" style="display:none"></div>
             </div>
           </div>
 
@@ -58,11 +60,13 @@
               <div class="label">名称</div>
               <input class="input" name="name" placeholder="产品名称" th:value="${form.name}" />
               <div class="hint">必填，1-50 字符。</div>
+              <div class="err-inline" data-role="name-error" style="display:none"></div>
             </div>
             <div class="field">
               <div class="label">库存</div>
               <input class="input" name="stock" placeholder="例如 100" th:value="${form.stock}" />
               <div class="hint">int。</div>
+              <div class="err-inline" data-role="stock-error" style="display:none"></div>
             </div>
           </div>
 
@@ -71,6 +75,7 @@
               <div class="label">价格</div>
               <input class="input" name="price" placeholder="例如 1999.00" th:value="${form.price}" />
               <div class="hint">decimal(10,2)。</div>
+              <div class="err-inline" data-role="price-error" style="display:none"></div>
             </div>
             <div class="field"></div>
           </div>
@@ -78,6 +83,7 @@
           <div class="field">
             <div class="label">描述</div>
             <textarea class="textarea" name="description" placeholder="产品描述" th:text="${form.description}"></textarea>
+            <div class="err-inline" data-role="description-error" style="display:none"></div>
           </div>
 
           <div style="display:flex; gap:10px; flex-wrap:wrap">

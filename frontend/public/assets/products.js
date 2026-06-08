@@ -6,8 +6,43 @@
   function isValidDecimal(s) {
     const t = s.trim();
     if (!t) return false;
-    // allow: 12, 12.3, 12.34
     return /^\d+(\.\d{1,2})?$/.test(t);
+  }
+
+  function isValidInteger(s) {
+    const t = s.trim();
+    if (!t) return false;
+    return /^\d+$/.test(t);
+  }
+
+  function showFieldError(form, fieldName, msg) {
+    const err = form.querySelector(`[data-role="${fieldName}-error"]`);
+    if (err) {
+      err.textContent = msg;
+      err.style.display = "block";
+    }
+    const input = form.querySelector(`[name="${fieldName}"]`);
+    if (input) {
+      input.classList.add("invalid");
+    }
+  }
+
+  function clearFieldError(form, fieldName) {
+    const err = form.querySelector(`[data-role="${fieldName}-error"]`);
+    if (err) {
+      err.textContent = "";
+      err.style.display = "none";
+    }
+    const input = form.querySelector(`[name="${fieldName}"]`);
+    if (input) {
+      input.classList.remove("invalid");
+    }
+  }
+
+  function clearAllFormErrors(form) {
+    ["categoryId", "name", "description", "price", "stock", "status"].forEach((field) => {
+      clearFieldError(form, field);
+    });
   }
 
   function showError(form, msg) {
@@ -90,6 +125,94 @@
       if (minN > maxN) {
         e.preventDefault();
         showError(form, "价格区间不合法：最小价不能大于最大价");
+      }
+    });
+  });
+
+  window.addEventListener("DOMContentLoaded", () => {
+    const form = document.querySelector('form.grid:not(.searchbar)');
+    if (!form) return;
+    if (!form.querySelector('input[name="name"], select[name="categoryId"]')) return;
+
+    const validateForm = () => {
+      let hasError = false;
+
+      clearAllFormErrors(form);
+
+      const categoryId = form.querySelector('[name="categoryId"]').value;
+      if (isBlank(categoryId)) {
+        showFieldError(form, "categoryId", "请选择分类");
+        hasError = true;
+      }
+
+      const name = form.querySelector('[name="name"]').value || "";
+      if (isBlank(name)) {
+        showFieldError(form, "name", "名称不能为空");
+        hasError = true;
+      } else if (name.length < 1 || name.length > 50) {
+        showFieldError(form, "name", "名称长度需为 1-50");
+        hasError = true;
+      }
+
+      const description = form.querySelector('[name="description"]').value || "";
+      if (description.length > 255) {
+        showFieldError(form, "description", "描述最长 255");
+        hasError = true;
+      }
+
+      const price = form.querySelector('[name="price"]').value || "";
+      if (isBlank(price)) {
+        showFieldError(form, "price", "价格不能为空");
+        hasError = true;
+      } else if (!isValidDecimal(price)) {
+        showFieldError(form, "price", "价格请输入有效数字（最多 2 位小数）");
+        hasError = true;
+      } else {
+        const priceN = Number(price);
+        if (priceN < 0) {
+          showFieldError(form, "price", "价格不能小于 0");
+          hasError = true;
+        }
+      }
+
+      const stock = form.querySelector('[name="stock"]').value || "";
+      if (isBlank(stock)) {
+        showFieldError(form, "stock", "库存不能为空");
+        hasError = true;
+      } else if (!isValidInteger(stock)) {
+        showFieldError(form, "stock", "库存请输入有效整数");
+        hasError = true;
+      } else {
+        const stockN = Number(stock);
+        if (stockN < 0) {
+          showFieldError(form, "stock", "库存不能小于 0");
+          hasError = true;
+        }
+      }
+
+      const status = form.querySelector('[name="status"]').value;
+      if (isBlank(status)) {
+        showFieldError(form, "status", "状态不能为空");
+        hasError = true;
+      }
+
+      return !hasError;
+    };
+
+    ["categoryId", "name", "description", "price", "stock", "status"].forEach((field) => {
+      const input = form.querySelector(`[name="${field}"]`);
+      if (input) {
+        input.addEventListener("input", () => clearFieldError(form, field));
+        input.addEventListener("change", () => clearFieldError(form, field));
+      }
+    });
+
+    form.addEventListener("submit", (e) => {
+      if (!validateForm()) {
+        e.preventDefault();
+        if (window.AppToast && window.AppToast.bad) {
+          window.AppToast.bad("请检查表单中的错误");
+        }
       }
     });
   });
