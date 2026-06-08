@@ -506,3 +506,109 @@ td.col-actions{overflow:visible}
   min-width:84px;
 }
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+.modal{
+  position:fixed;
+  inset:0;
+  z-index:200;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  animation:fadeIn .18s ease-out;
+}
+.modal-backdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(2,6,23,.5);
+  backdrop-filter:blur(4px);
+}
+.modal-content{
+  position:relative;
+  width:min(560px, calc(100vw - 32px));
+  background:rgba(255,255,255,.97);
+  border-radius:18px;
+  border:1px solid var(--stroke);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  animation:pop .22s ease-out;
+}
+.modal-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 20px;
+  border-bottom:1px solid var(--stroke);
+}
+.modal-header h3{
+  margin:0;
+  font-size:18px;
+}
+.modal-header .btn.close{
+  padding:6px 10px;
+  font-size:18px;
+  line-height:1;
+}
+.modal-body{
+  padding:20px;
+  max-height:calc(100vh - 200px);
+  overflow-y:auto;
+}
+.modal-footer{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+  padding:16px 20px;
+  border-top:1px solid var(--stroke);
+  background:rgba(248,250,252,.6);
+}
+
+.progress{
+  position:relative;
+  margin-top:12px;
+  height:36px;
+  border-radius:12px;
+  background:rgba(11,18,32,.06);
+  border:1px solid var(--stroke);
+  overflow:hidden;
+}
+.progress-bar{
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:0;
+  background:linear-gradient(90deg, var(--brand0), var(--brand1));
+  transition:width .3s ease;
+}
+.progress-text{
+  position:relative;
+  z-index:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:100%;
+  font-size:13px;
+  font-weight:600;
+  color:var(--text);
+}
+
+.danger-text{
+  color:var(--danger);
+}
+
+input[type="file"]{
+  cursor:pointer;
+}
+input[type="file"]::file-selector-button{
+  padding:8px 14px;
+  margin-right:10px;
+  border-radius:10px;
+  border:1px solid var(--stroke);
+  background:linear-gradient(135deg, var(--brand0), var(--brand1));
+  color:white;
+  cursor:pointer;
+  font-weight:600;
+}
+input[type="file"]::file-selector-button:hover{
+  opacity:.9;
+}

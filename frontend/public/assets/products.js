@@ -3,6 +3,85 @@
     return !s || !s.trim();
   }
 
+  function setupCsvImportExport() {
+    const importModal = document.getElementById("importModal");
+    if (!importModal) return;
+
+    const btnImportCsv = document.getElementById("btnImportCsv");
+    const btnExportCsv = document.getElementById("btnExportCsv");
+    const btnConfirmImport = document.getElementById("btnConfirmImport");
+    const csvFileInput = document.getElementById("csvFileInput");
+    const importProgress = document.getElementById("importProgress");
+    const exportForm = document.getElementById("exportForm");
+    const importForm = document.getElementById("importForm");
+    const importFormFile = document.getElementById("importFormFile");
+    const btnCloseResult = document.getElementById("btnCloseResult");
+    const importResultCard = document.getElementById("importResultCard");
+
+    if (btnExportCsv && exportForm) {
+      btnExportCsv.addEventListener("click", () => {
+        exportForm.submit();
+      });
+    }
+
+    function openModal() {
+      if (importModal) {
+        importModal.style.display = "flex";
+      }
+    }
+
+    function closeModal() {
+      if (importModal) {
+        importModal.style.display = "none";
+      }
+    }
+
+    if (btnImportCsv) {
+      btnImportCsv.addEventListener("click", openModal);
+    }
+
+    importModal.querySelectorAll("[data-close-modal]").forEach((el) => {
+      el.addEventListener("click", closeModal);
+    });
+
+    if (btnCloseResult && importResultCard) {
+      btnCloseResult.addEventListener("click", () => {
+        importResultCard.style.display = "none";
+      });
+    }
+
+    if (btnConfirmImport && csvFileInput && importForm && importFormFile) {
+      btnConfirmImport.addEventListener("click", () => {
+        const file = csvFileInput.files[0];
+        if (!file) {
+          if (window.AppToast && window.AppToast.bad) {
+            window.AppToast.bad("请选择CSV文件");
+          }
+          return;
+        }
+
+        if (!file.name.toLowerCase().endsWith(".csv")) {
+          if (window.AppToast && window.AppToast.bad) {
+            window.AppToast.bad("请上传CSV格式的文件");
+          }
+          return;
+        }
+
+        importFormFile.files = csvFileInput.files;
+
+        if (importProgress) {
+          importProgress.style.display = "block";
+          const progressBar = importProgress.querySelector(".progress-bar");
+          if (progressBar) progressBar.style.width = "30%";
+        }
+        btnConfirmImport.disabled = true;
+        btnConfirmImport.textContent = "导入中...";
+
+        importForm.submit();
+      });
+    }
+  }
+
   function isValidDecimal(s) {
     const t = s.trim();
     if (!t) return false;
@@ -69,6 +148,8 @@
   }
 
   window.addEventListener("DOMContentLoaded", () => {
+    setupCsvImportExport();
+
     const form = document.querySelector('form.searchbar[action="/products"]');
     if (!form) return;
 

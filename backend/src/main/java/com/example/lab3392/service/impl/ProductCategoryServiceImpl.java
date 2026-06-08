@@ -98,4 +98,12 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
         }
         categoryMapper.deleteById(id);
     }
+
+    @Override
+    public ProductCategory findByName(String name) {
+        if (name == null || name.trim().isEmpty()) return null;
+        LambdaQueryWrapper<ProductCategory> w = new LambdaQueryWrapper<>();
+        w.eq(ProductCategory::getName, name.trim());
+        return categoryMapper.selectOne(w);
+    }
 }

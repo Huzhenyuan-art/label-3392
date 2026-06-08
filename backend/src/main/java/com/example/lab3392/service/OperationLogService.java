@@ -11,5 +11,9 @@ public interface OperationLogService {
 
     void logProductDelete(Product product, Long operatorId, String operatorUsername);
 
+    void logProductImport(int totalRows, int successCount, int failureCount, Long operatorId, String operatorUsername);
+
+    void logProductExport(Long operatorId, String operatorUsername);
+
     IPage<?> search(OperationLogQuery q, long page, long size);
 }

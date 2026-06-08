@@ -20,4 +20,6 @@ public interface ProductCategoryService {
     void update(Long id, CategoryForm form);
 
     void delete(Long id);
+
+    ProductCategory findByName(String name);
 }

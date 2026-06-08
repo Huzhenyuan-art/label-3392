@@ -24,6 +24,8 @@ public class OperationLogServiceImpl implements OperationLogService {
     private static final String OP_CREATE = "CREATE";
     private static final String OP_UPDATE = "UPDATE";
     private static final String OP_DELETE = "DELETE";
+    private static final String OP_IMPORT = "IMPORT";
+    private static final String OP_EXPORT = "EXPORT";
 
     private final OperationLogMapper operationLogMapper;
     private final ObjectMapper objectMapper;
@@ -71,6 +73,35 @@ public class OperationLogServiceImpl implements OperationLogService {
         oplog.setTargetType(TARGET_TYPE_PRODUCT);
         oplog.setTargetId(product.getId());
         oplog.setBeforeSnapshot(toJson(product));
+        oplog.setAfterSnapshot(null);
+        oplog.setCreatedAt(LocalDateTime.now());
+        operationLogMapper.insert(oplog);
+    }
+
+    @Override
+    public void logProductImport(int totalRows, int successCount, int failureCount, Long operatorId, String operatorUsername) {
+        OperationLog oplog = new OperationLog();
+        oplog.setOperatorId(operatorId);
+        oplog.setOperatorUsername(operatorUsername);
+        oplog.setOperationType(OP_IMPORT);
+        oplog.setTargetType(TARGET_TYPE_PRODUCT);
+        oplog.setTargetId(null);
+        oplog.setBeforeSnapshot(null);
+        String summary = String.format("total=%d,success=%d,failure=%d", totalRows, successCount, failureCount);
+        oplog.setAfterSnapshot(summary);
+        oplog.setCreatedAt(LocalDateTime.now());
+        operationLogMapper.insert(oplog);
+    }
+
+    @Override
+    public void logProductExport(Long operatorId, String operatorUsername) {
+        OperationLog oplog = new OperationLog();
+        oplog.setOperatorId(operatorId);
+        oplog.setOperatorUsername(operatorUsername);
+        oplog.setOperationType(OP_EXPORT);
+        oplog.setTargetType(TARGET_TYPE_PRODUCT);
+        oplog.setTargetId(null);
+        oplog.setBeforeSnapshot(null);
         oplog.setAfterSnapshot(null);
         oplog.setCreatedAt(LocalDateTime.now());
         operationLogMapper.insert(oplog);

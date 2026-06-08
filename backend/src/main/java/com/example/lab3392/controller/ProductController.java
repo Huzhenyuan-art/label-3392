@@ -1,5 +1,6 @@
 package com.example.lab3392.controller;
 
+import com.example.lab3392.dto.CsvImportResult;
 import com.example.lab3392.dto.ProductForm;
 import com.example.lab3392.dto.ProductQuery;
 import com.example.lab3392.entity.Product;
@@ -8,8 +9,12 @@ import com.example.lab3392.service.OperationLogService;
 import com.example.lab3392.service.ProductCategoryService;
 import com.example.lab3392.service.ProductService;
 import com.example.lab3392.service.UserService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.Objects;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +26,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -176,6 +182,92 @@ public class ProductController {
     private User getCurrentOperator(Principal principal) {
         if (principal == null) return null;
         return userService.findByUsername(principal.getName());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/products/export")
+    public void exportCsv(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String minPrice,
+            @RequestParam(required = false) String maxPrice,
+            HttpServletResponse response,
+            Principal principal
+    ) throws IOException {
+        String minRaw = trimToNull(minPrice);
+        String maxRaw = trimToNull(maxPrice);
+
+        BigDecimal minVal = null;
+        BigDecimal maxVal = null;
+
+        try {
+            if (minRaw != null) minVal = new BigDecimal(minRaw);
+            if (maxRaw != null) maxVal = new BigDecimal(maxRaw);
+        } catch (NumberFormatException ignored) {
+        }
+
+        ProductQuery q = new ProductQuery(name, minVal, maxVal);
+
+        String fileName = URLEncoder.encode("产品列表.csv", StandardCharsets.UTF_8);
+        response.setContentType("text/csv; charset=UTF-8");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + fileName);
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Cache-Control", "no-cache");
+        response.setDateHeader("Expires", 0);
+
+        productService.exportCsv(q, response.getOutputStream());
+
+        User operator = getCurrentOperator(principal);
+        if (operator != null) {
+            operationLogService.logProductExport(operator.getId(), operator.getUsername());
+        }
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/products/import")
+    public String importCsv(
+            @RequestParam("file") MultipartFile file,
+            RedirectAttributes ra,
+            Principal principal
+    ) {
+        if (file.isEmpty()) {
+            ra.addFlashAttribute("flashBad", "请选择要上传的CSV文件");
+            return "redirect:/products";
+        }
+
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || !fileName.toLowerCase().endsWith(".csv")) {
+            ra.addFlashAttribute("flashBad", "请上传CSV格式的文件");
+            return "redirect:/products";
+        }
+
+        try {
+            CsvImportResult result = productService.importCsv(file.getInputStream());
+            ra.addFlashAttribute("importResult", result);
+
+            StringBuilder message = new StringBuilder();
+            message.append(String.format("导入完成：共 %d 行，成功 %d 行，失败 %d 行",
+                    result.getTotalRows(), result.getSuccessCount(), result.getFailureCount()));
+
+            if (result.hasFailures()) {
+                ra.addFlashAttribute("flashBad", message.toString());
+            } else {
+                ra.addFlashAttribute("flashOk", message.toString());
+            }
+
+            User operator = getCurrentOperator(principal);
+            if (operator != null) {
+                operationLogService.logProductImport(
+                        result.getTotalRows(), result.getSuccessCount(), result.getFailureCount(),
+                        operator.getId(), operator.getUsername()
+                );
+            }
+
+        } catch (Exception e) {
+            ra.addFlashAttribute("flashBad", "导入失败：" + e.getMessage());
+        }
+
+        return "redirect:/products";
     }
 
     private static String trimToNull(String s) {
