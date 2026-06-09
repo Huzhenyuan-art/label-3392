@@ -6,6 +6,7 @@
     <title th:text="${mode} == 'edit' ? '编辑分类' : '新增分类'">分类</title>
     <link rel="stylesheet" href="/assets/app.css" />
     <script defer src="/assets/app.js"></script>
+    <script defer src="/assets/notifications.js"></script>
   </head>
   <body>
     <header class="topbar">
@@ -14,7 +15,7 @@
         <nav class="nav">
           <a class="btn" href="/dashboard">数据看板</a>
           <a class="btn" href="/products">产品列表</a>
-          <a class="btn" href="/categories">产品分类</a>
+          <a class="btn active" href="/categories">产品分类</a>
           <a class="btn" href="/cart">购物车</a>
           <a class="btn" href="/orders">我的订单</a>
           <a class="btn" href="/profile">个人中心</a>

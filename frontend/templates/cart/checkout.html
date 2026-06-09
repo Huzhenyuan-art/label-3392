@@ -29,6 +29,7 @@
       .success-indicator{display:inline-flex;align-items:center;gap:6px;background:rgba(22,163,74,.12);color:var(--ok);padding:4px 10px;border-radius:999px;font-size:12px;font-weight:650}
       .disabled-btn{opacity:.5;cursor:not-allowed}
     </style>
+    <script defer src="/assets/notifications.js"></script>
   </head>
   <body class="page-checkout">
     <header class="topbar">
@@ -38,7 +39,7 @@
           <a class="btn" href="/dashboard">数据看板</a>
           <a class="btn" href="/products">产品列表</a>
           <a class="btn" href="/categories">产品分类</a>
-          <a class="btn" href="/cart">购物车</a>
+          <a class="btn active" href="/cart">购物车</a>
           <a class="btn" href="/orders">我的订单</a>
           <a class="btn" href="/profile">个人中心</a>
           <a class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/admin/users">用户管理</a>

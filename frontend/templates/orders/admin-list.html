@@ -30,6 +30,7 @@
       .stat-chip{padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--stroke);background:var(--bg1)}
       .stat-chip .num{font-weight:800;color:var(--brand0)}
     </style>
+    <script defer src="/assets/notifications.js"></script>
   </head>
   <body class="page-admin-orders">
     <header class="topbar">
@@ -43,7 +44,7 @@
           <a class="btn" href="/orders">我的订单</a>
           <a class="btn" href="/profile">个人中心</a>
           <a class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/admin/users">用户管理</a>
-          <a class="btn primary" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/admin/orders">订单管理</a>
+          <a class="btn active" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/admin/orders">订单管理</a>
           <a class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/operation-logs">审计日志</a>
           <a class="btn" href="/notifications">
             <span class="notification-nav-btn">

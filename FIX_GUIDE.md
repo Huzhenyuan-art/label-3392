@@ -600,6 +600,66 @@
 
 ---
 
+### 修复 #015: 导航栏当前页高亮样式不统一 + 通知未读数部分页面消失
+
+**修复时间**: 2026-06-09
+
+**问题描述**:
+1. 点击菜单栏进入页面后，当前页的导航链接高亮样式不统一：有的页面用 `active` 类（淡紫色背景+边框），有的用 `primary` 类（渐变紫色实心按钮+白色文字），大多数页面完全没有高亮
+2. 通知按钮的未读数在部分页面消失，切换到购物车、订单、结算等页面时通知角标不显示
+
+**根本原因**:
+
+**Bug1 - 高亮样式不统一**：
+1. CSS 中 `.nav .btn.active` 定义为淡紫色背景+紫色边框的轻量高亮，`.btn.primary` 定义为渐变紫色实心按钮的强力高亮，两者视觉风格差异大
+2. 各页面高亮方式不一致：dashboard/notifications/users/operation-logs 使用 `active`；cart/orders 使用 `primary`；products/categories/checkout/pay/detail/form/profile 完全没有高亮
+3. `primary` 样式过于抢眼，不适合导航栏当前页标识，应使用 `active` 轻量高亮
+
+**Bug2 - 通知未读数消失**：
+1. 通知未读数由 `notifications.js` 通过 AJAX 调用 `/api/notifications/unread-count` 获取，然后更新页面中所有 `[data-role="unread-badge"]` 元素
+2. 8个页面缺少 `notifications.js` 脚本引用，导致页面加载后不会调用 API 获取未读数，badge 永远保持 `style="display:none"` 状态
+3. 缺少脚本的页面：cart/list、cart/checkout、orders/list、orders/admin-list、orders/detail、orders/pay、categories/form、operation-logs/list
+
+**修复方案**:
+
+1. **统一高亮样式**：所有页面的导航栏当前页链接统一使用 `btn active` 类，不再使用 `btn primary`。`primary` 类仅用于页面内操作按钮（如"提交"、"新增"、"去结算"等）
+2. **补齐缺失高亮**：为所有没有当前页高亮的页面添加 `active` 类：
+   - products/list、products/detail、products/form → 产品列表 active
+   - categories/list、categories/form → 产品分类 active
+   - cart/checkout → 购物车 active
+   - orders/detail、orders/pay → 我的订单 active
+   - users/profile → 个人中心 active
+3. **替换 primary 为 active**：将 cart/list、orders/list、orders/admin-list 中导航栏的 `primary` 改为 `active`
+4. **补齐 notifications.js**：为8个缺少该脚本的页面在 `</head>` 前添加 `<script defer src="/assets/notifications.js"></script>`
+
+**影响文件**:
+
+| 文件路径 | 修改内容 |
+|----------|----------|
+| `frontend/templates/products/list.html` | 产品列表链接添加 `active`；补回产品分类链接 |
+| `frontend/templates/products/detail.html` | 产品列表链接添加 `active` |
+| `frontend/templates/products/form.html` | 产品列表链接添加 `active` |
+| `frontend/templates/categories/list.html` | 产品分类链接添加 `active` |
+| `frontend/templates/categories/form.html` | 产品分类链接添加 `active`；添加 `notifications.js` |
+| `frontend/templates/cart/list.html` | `primary`→`active`；添加 `notifications.js` |
+| `frontend/templates/cart/checkout.html` | 购物车链接添加 `active`；添加 `notifications.js` |
+| `frontend/templates/orders/list.html` | `primary`→`active`；添加 `notifications.js` |
+| `frontend/templates/orders/admin-list.html` | `primary`→`active`；添加 `notifications.js` |
+| `frontend/templates/orders/detail.html` | 我的订单链接添加 `active`；添加 `notifications.js` |
+| `frontend/templates/orders/pay.html` | 我的订单链接添加 `active`；添加 `notifications.js` |
+| `frontend/templates/users/profile.html` | 个人中心链接添加 `active` |
+| `frontend/templates/operation-logs/list.html` | 添加 `notifications.js` |
+
+**修复状态**: ✅ 已完成
+
+**验证结果**:
+- 所有16个页面导航栏当前页链接统一使用 `btn active` 高亮样式
+- `btn primary` 不再用于导航栏，仅用于页面内操作按钮
+- 所有16个页面均引入 `notifications.js`，通知未读数在任意页面均可正常显示
+- 通知角标每30秒自动刷新，切换页面后立即重新获取
+
+---
+
 ## 修复登记模板
 
 > 后续修复请复制以下模板并填写：

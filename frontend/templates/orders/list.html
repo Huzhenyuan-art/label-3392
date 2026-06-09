@@ -28,6 +28,7 @@
       .empty-orders{text-align:center;padding:48px 20px;color:var(--muted)}
       .empty-orders .icon{font-size:48px;margin-bottom:12px;opacity:.5}
     </style>
+    <script defer src="/assets/notifications.js"></script>
   </head>
   <body class="page-orders">
     <header class="topbar">
@@ -38,7 +39,7 @@
           <a class="btn" href="/products">产品列表</a>
           <a class="btn" href="/categories">产品分类</a>
           <a class="btn" href="/cart">购物车</a>
-          <a class="btn primary" href="/orders">我的订单</a>
+          <a class="btn active" href="/orders">我的订单</a>
           <a class="btn" href="/profile">个人中心</a>
           <a class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/admin/users">用户管理</a>
           <a class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/admin/orders">订单管理</a>
