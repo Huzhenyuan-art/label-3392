@@ -90,14 +90,14 @@
             <div class="kv-k">创建时间</div>
             <div class="kv-v">
               <span th:text="${#temporals.format(product.createdAt, 'yyyy-MM-dd HH:mm')}">time</span>
-              <span class="time-relative" th:attr="data-datetime=${#temporals.format(product.createdAt, 'yyyy-MM-dd\'T\'HH:mm:ss')}"></span>
+              <span class="time-relative" th:attr="data-datetime=${#temporals.format(product.createdAt, 'yyyy-MM-dd''T''HH:mm:ss')}"></span>
             </div>
           </div>
           <div class="kv-row">
             <div class="kv-k">更新时间</div>
             <div class="kv-v">
               <span th:text="${#temporals.format(product.updatedAt, 'yyyy-MM-dd HH:mm')}">time</span>
-              <span class="time-relative" th:attr="data-datetime=${#temporals.format(product.updatedAt, 'yyyy-MM-dd\'T\'HH:mm:ss')}"></span>
+              <span class="time-relative" th:attr="data-datetime=${#temporals.format(product.updatedAt, 'yyyy-MM-dd''T''HH:mm:ss')}"></span>
             </div>
           </div>
         </div>

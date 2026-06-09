@@ -430,6 +430,43 @@
 
 ---
 
+### 修复 #011: 产品详情页 Thymeleaf 表达式转义错误导致 500 Internal Server Error
+
+**修复时间**: 2026-06-09
+
+**问题描述**:
+- 从产品列表点击「详情」跳转到 `/products/{id}` 页面时，显示 Whitelabel Error Page（type=Internal Server Error, status=500）
+- 页面无法渲染，后端抛出 Thymeleaf 模板解析异常
+
+**根本原因**:
+- 在为产品详情页添加 `createdAt`/`updatedAt` 相对时间功能时，`th:attr` 中的 `#temporals.format()` 格式字符串使用了反斜杠转义单引号 `\'T\'`：
+  ```html
+  th:attr="data-datetime=${#temporals.format(product.createdAt, 'yyyy-MM-dd\'T\'HH:mm:ss')}"
+  ```
+- **Thymeleaf 标准表达式不支持反斜杠 `\` 转义**，字符串字面量中的单引号必须使用**双写单引号 `''`** 进行转义
+- 这导致 Thymeleaf 模板解析阶段失败，抛出异常，整个页面返回 500 错误
+
+**修复方案**:
+- 将格式字符串中的 `\'T\'` 替换为 Thymeleaf 正确的单引号转义语法 `''T''`：
+  ```html
+  th:attr="data-datetime=${#temporals.format(product.createdAt, 'yyyy-MM-dd''T''HH:mm:ss')}"
+  ```
+- 同时修复 `createdAt` 和 `updatedAt` 两处表达式
+
+**影响文件**:
+
+| 文件路径 | 修改内容 |
+|----------|----------|
+| `frontend/templates/products/detail.html` | 将 `th:attr` 中 `\'T\'` 替换为 `''T''`，修复两处（createdAt 和 updatedAt） |
+
+**修复状态**: ✅ 已完成
+
+**验证结果**:
+- 产品详情页正常渲染，不再出现 500 错误
+- 创建时间和更新时间同时显示 `yyyy-MM-dd HH:mm` 格式和相对时间（如「3 小时前」）
+
+---
+
 ## 修复登记模板
 
 > 后续修复请复制以下模板并填写：
