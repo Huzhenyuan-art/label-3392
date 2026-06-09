@@ -2,16 +2,16 @@ services:
   db:
     image: mysql:8.0
     environment:
-      MYSQL_ROOT_PASSWORD: "123456"
-      MYSQL_DATABASE: "lab3392"
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-123456}
+      MYSQL_DATABASE: ${DB_NAME:-lab3392}
       TZ: "UTC"
     ports:
-      - "3306:3306"
+      - "${DB_PORT:-3306}:3306"
     volumes:
       - db_data:/var/lib/mysql
       - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "mysql -uroot -p123456 -D lab3392 -e \"SELECT 1 FROM users LIMIT 1; SELECT 1 FROM product_categories LIMIT 1;\" >/dev/null 2>&1"]
+      test: ["CMD-SHELL", "mysql -uroot -p${DB_PASSWORD:-123456} -D ${DB_NAME:-lab3392} -e \"SELECT 1 FROM users LIMIT 1; SELECT 1 FROM product_categories LIMIT 1;\" >/dev/null 2>&1"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -20,7 +20,7 @@ services:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -35,14 +35,14 @@ services:
       dockerfile: backend/Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_NAME: lab3392
-      DB_USER: root
-      DB_PASSWORD: "123456"
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      UPLOAD_DIR: /app/uploads
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME:-lab3392}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-123456}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      UPLOAD_DIR: ${UPLOAD_DIR:-/app/uploads}
       TZ: "UTC"
     ports:
       - "8000:8000"
@@ -69,6 +69,7 @@ services:
     working_dir: /app/backend
     volumes:
       - ./:/app
+      - maven_repo:/root/.m2
     environment:
       SPRING_PROFILES_ACTIVE: test
       TZ: "UTC"
@@ -78,3 +79,4 @@ volumes:
   db_data:
   redis_data:
   upload_data:
+  maven_repo:

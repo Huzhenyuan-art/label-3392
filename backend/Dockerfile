@@ -9,7 +9,7 @@ COPY backend/src /app/backend/src
 COPY frontend/templates /app/backend/src/main/resources/templates
 RUN mvn -f /app/backend/pom.xml -B -DskipTests package
 
-FROM maven:3.9-eclipse-temurin-17
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=builder /app/backend/target/backend-0.0.1-SNAPSHOT.jar /app/app.jar
 EXPOSE 8000

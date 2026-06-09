@@ -9,8 +9,32 @@
 
 ## 🚀 启动指南 (How to Run)
 1. 确保 Docker Desktop 已启动。
-2. 在目录 `label-3392` 执行：`docker compose up --build`
-3. 首次启动会自动初始化数据库表结构，并自动写入演示数据。
+2. （可选）复制 `.env.example` 为 `.env` 并按需修改配置；不创建 `.env` 也能以默认值启动。
+3. 在目录 `label-3392` 执行：`docker compose up --build`
+4. 首次启动会自动初始化数据库表结构，并自动写入演示数据。
+
+## 🔧 环境变量 (Environment Variables)
+项目通过 `.env` 文件管理环境变量，模板见 `.env.example`。Docker Compose 会自动读取项目根目录的 `.env` 文件；未设置时使用以下默认值：
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `DB_HOST` | MySQL 主机地址 | `db`（Docker 内部） |
+| `DB_PORT` | MySQL 端口 | `3306` |
+| `DB_NAME` | 数据库名 | `lab3392` |
+| `DB_USER` | 数据库用户名 | `root` |
+| `DB_PASSWORD` | 数据库密码 | `123456` |
+| `REDIS_HOST` | Redis 主机地址 | `redis`（Docker 内部） |
+| `REDIS_PORT` | Redis 端口 | `6379` |
+| `UPLOAD_DIR` | 文件上传目录 | `/app/uploads` |
+
+本地开发与 CI 使用同一套约定：CI 中 `backend-test` 使用 H2 内存库，不依赖上述变量；本地 `docker compose up` 则通过 `.env` 或默认值连接 MySQL/Redis。
+
+## 🤖 CI (GitHub Actions)
+项目配置了 GitHub Actions CI 流水线（`.github/workflows/ci.yml`），在 `push` 和 `pull_request` 到 `main`/`master` 分支时自动执行：
+```bash
+docker compose --profile test run --rm backend-test
+```
+测试使用 H2 内存库 + Spring Boot Test + MockMvc，无需 MySQL/Redis 依赖。
 
 ## 🔗 服务地址 (Services)
 - Frontend（入口）: http://localhost:3000
