@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>订单详情</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+    <script defer src="/assets/app.js"></script>
+    <style>
+      .detail-header{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap}
+      .order-no-badge{font-family:monospace;font-size:13px;color:var(--muted);background:var(--bg0);padding:3px 8px;border-radius:6px}
+      .status-badge{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12px;font-weight:700}
+      .status-badge.pending{background:rgba(245,158,11,.12);color:#d97706}
+      .status-badge.paid{background:rgba(22,163,74,.12);color:var(--ok)}
+      .status-badge.cancelled{background:rgba(239,68,68,.1);color:var(--danger)}
+      .timeline{margin:16px 0;padding-left:20px;border-left:2px solid var(--stroke)}
+      .timeline .step{position:relative;padding:8px 0 8px 16px;font-size:13px}
+      .timeline .step::before{content:'';position:absolute;left:-25px;top:14px;width:8px;height:8px;border-radius:50%;background:var(--stroke)}
+      .timeline .step.active::before{background:var(--brand0)}
+      .timeline .step .time{color:var(--muted);font-size:12px}
+      .detail-item{display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;padding:12px 0;border-bottom:1px dashed var(--stroke)}
+      .detail-item:last-child{border-bottom:none}
+      .detail-item .name{font-weight:600}
+      .detail-item .qty{color:var(--muted);font-size:13px;text-align:center;min-width:60px}
+      .detail-item .subtotal{font-weight:700;color:var(--brand1);text-align:right;min-width:80px}
+      .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:12px 0}
+      .info-cell{padding:10px 14px;background:var(--bg0);border-radius:10px}
+      .info-cell .label{font-size:12px;color:var(--muted);margin-bottom:4px}
+      .info-cell .value{font-weight:650;font-size:14px}
+      .summary-card{background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(37,99,235,.08));border:1px solid rgba(124,58,237,.2);border-radius:14px;padding:16px;margin-top:14px}
+      .summary-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
+      .summary-row.total{border-top:2px solid var(--stroke);margin-top:8px;padding-top:12px}
+      .summary-row .label{color:var(--muted)}
+      .summary-row .value{font-weight:650}
+      .summary-row.total .label{font-size:16px;color:var(--text);font-weight:700}
+      .summary-row.total .value{font-size:24px;font-weight:800;color:var(--brand1)}
+    </style>
+  </head>
+  <body class="page-order-detail">
+    <header class="topbar">
+      <div class="inner">
+        <a class="brand" href="/"><span class="dot"></span><span>订单详情</span></a>
+        <nav class="nav">
+          <a class="btn" href="/dashboard">数据看板</a>
+          <a class="btn" href="/products">产品列表</a>
+          <a class="btn" href="/cart">购物车</a>
+          <a class="btn" href="/orders">我的订单</a>
+          <a class="btn" th:if="${isAdmin}" href="/admin/orders">全部订单</a>
+          <div class="pill" th:if="${#authorization.expression('isAuthenticated()')}">
+            <span class="spark"></span><span th:text="'当前用户：' + ${username}">当前用户</span>
+          </div>
+          <form method="post" action="/logout" th:if="${#authorization.expression('isAuthenticated()')}">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            <button class="btn" type="submit">退出</button>
+          </form>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="card pad compact">
+        <div class="detail-header">
+          <div>
+            <h1 class="h1" style="margin-top:8px">订单详情</h1>
+            <p class="sub">查看订单完整信息</p>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="order-no-badge" th:text="${order.orderNo}">ORD</span>
+            <span class="status-badge pending" th:if="${order.status == 'PENDING_PAYMENT'}">⏳ 待支付</span>
+            <span class="status-badge paid" th:if="${order.status == 'PAID'}">✅ 已支付</span>
+            <span class="status-badge cancelled" th:if="${order.status == 'CANCELLED'}">❌ 已取消</span>
+          </div>
+        </div>
+      </section>
+
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:14px;margin-top:14px" class="detail-layout">
+        <div>
+          <section class="card pad">
+            <h3 style="margin:0 0 12px 0">商品明细</h3>
+            <div class="detail-item" th:each="item : ${order.items}">
+              <div class="name" th:text="${item.productName}">商品名称</div>
+              <div class="qty"><span th:text="${item.productPrice}">0</span> 元 × <span th:text="${item.quantity}">1</span></div>
+              <div class="subtotal"><span th:text="${item.subtotal}">0.00</span> 元</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-row">
+                <span class="label">商品总数</span>
+                <span class="value" th:text="${#aggregates.sum(order.items.![quantity]) + ' 件'">0 件</span>
+              </div>
+              <div class="summary-row total">
+                <span class="label">订单总额</span>
+                <span class="value"><span th:text="${order.totalAmount}">0.00</span> 元</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div>
+          <section class="card pad">
+            <h3 style="margin:0 0 12px 0">订单信息</h3>
+            <div class="info-grid" style="grid-template-columns:1fr">
+              <div class="info-cell">
+                <div class="label">订单号</div>
+                <div class="value" th:text="${order.orderNo}">ORD</div>
+              </div>
+              <div class="info-cell" th:if="${isAdmin and order.username != null}">
+                <div class="label">下单用户</div>
+                <div class="value" th:text="${order.username}">用户</div>
+              </div>
+              <div class="info-cell">
+                <div class="label">下单时间</div>
+                <div class="value" th:text="${#temporals.format(order.createdAt, 'yyyy-MM-dd HH:mm:ss')}">-</div>
+              </div>
+              <div class="info-cell" th:if="${order.paidAt != null}">
+                <div class="label">支付时间</div>
+                <div class="value" th:text="${#temporals.format(order.paidAt, 'yyyy-MM-dd HH:mm:ss')}">-</div>
+              </div>
+              <div class="info-cell" th:if="${order.expireAt != null and order.status == 'PENDING_PAYMENT'}">
+                <div class="label">超时时间</div>
+                <div class="value" th:text="${#temporals.format(order.expireAt, 'yyyy-MM-dd HH:mm:ss')}">-</div>
+              </div>
+            </div>
+
+            <div class="timeline" style="margin-top:16px">
+              <div class="step active">
+                📝 订单创建
+                <div class="time" th:text="${#temporals.format(order.createdAt, 'yyyy-MM-dd HH:mm')}">-</div>
+              </div>
+              <div class="step" th:classappend="${order.status == 'PAID'} ? 'active'">
+                💳 支付完成
+                <div class="time" th:if="${order.paidAt != null}" th:text="${#temporals.format(order.paidAt, 'yyyy-MM-dd HH:mm')}">-</div>
+              </div>
+              <div class="step" th:if="${order.status == 'CANCELLED'}" style="color:var(--danger)">
+                ❌ 订单取消
+              </div>
+            </div>
+
+            <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+              <a class="btn primary" th:href="@{'/orders/' + ${order.id} + '/pay'}" th:if="${order.status == 'PENDING_PAYMENT'}">去支付</a>
+              <form method="post" th:action="@{'/orders/' + ${order.id} + '/cancel'}" th:if="${order.status == 'PENDING_PAYMENT'}" style="display:inline">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                <button class="btn danger" type="submit" data-confirm="确定取消该订单？">取消订单</button>
+              </form>
+              <a class="btn" href="/orders">返回列表</a>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <style>
+        @media(max-width:720px){
+          .detail-layout{grid-template-columns:1fr !important}
+        }
+      </style>
+    </main>
+
+    <script th:if="${flashOk}" th:inline="javascript">
+      window.AppToast && window.AppToast.ok([[${flashOk}]]);
+    </script>
+    <script th:if="${flashError}" th:inline="javascript">
+      window.AppToast && window.AppToast.bad([[${flashError}]]);
+    </script>
+  </body>
+</html>

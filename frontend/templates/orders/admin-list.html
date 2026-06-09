@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>全部订单</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+    <script defer src="/assets/app.js"></script>
+    <style>
+      .filter-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+      .filter-bar .input{max-width:240px}
+      .filter-bar select{padding:7px 12px;border-radius:8px;border:1px solid var(--stroke);background:var(--bg1);font-size:13px;color:var(--text)}
+      .status-badge{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12px;font-weight:700}
+      .status-badge.pending{background:rgba(245,158,11,.12);color:#d97706}
+      .status-badge.paid{background:rgba(22,163,74,.12);color:var(--ok)}
+      .status-badge.cancelled{background:rgba(239,68,68,.1);color:var(--danger)}
+      .order-card{border:1px solid var(--stroke);border-radius:14px;padding:16px;margin-bottom:12px;background:var(--card);transition:box-shadow .2s}
+      .order-card:hover{box-shadow:var(--shadow2)}
+      .order-card-header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--stroke)}
+      .order-no-badge{font-family:monospace;font-size:13px;color:var(--muted);background:var(--bg0);padding:3px 8px;border-radius:6px}
+      .order-items-preview{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+      .order-items-preview .item-tag{font-size:12px;color:var(--muted);background:var(--bg0);padding:2px 8px;border-radius:6px}
+      .order-card-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+      .order-time{font-size:12px;color:var(--muted)}
+      .order-user{font-size:12px;color:var(--brand0);font-weight:600}
+      .order-amount{font-size:18px;font-weight:800;color:var(--brand1)}
+      .empty-orders{text-align:center;padding:48px 20px;color:var(--muted)}
+      .empty-orders .icon{font-size:48px;margin-bottom:12px;opacity:.5}
+      .stats-row{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+      .stat-chip{padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--stroke);background:var(--bg1)}
+      .stat-chip .num{font-weight:800;color:var(--brand0)}
+    </style>
+  </head>
+  <body class="page-admin-orders">
+    <header class="topbar">
+      <div class="inner">
+        <a class="brand" href="/"><span class="dot"></span><span>订单管理</span></a>
+        <nav class="nav">
+          <a class="btn" href="/dashboard">数据看板</a>
+          <a class="btn" href="/products">产品列表</a>
+          <a class="btn" href="/categories">产品分类</a>
+          <a class="btn" href="/admin/users">用户管理</a>
+          <a class="btn primary" href="/admin/orders">订单管理</a>
+          <a class="btn" href="/operation-logs">审计日志</a>
+          <div class="pill" th:if="${#authorization.expression('isAuthenticated()')}">
+            <span class="spark"></span><span th:text="'当前用户：' + ${username}">当前用户</span>
+          </div>
+          <form method="post" action="/logout" th:if="${#authorization.expression('isAuthenticated()')}">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            <button class="btn" type="submit">退出</button>
+          </form>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="card pad compact">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <div>
+            <h1 class="h1" style="margin-top:8px">全部订单</h1>
+            <p class="sub">查看和管理所有用户的订单</p>
+          </div>
+          <div class="pill">
+            <span class="spark"></span>
+            <span th:text="${#lists.size(orders) + ' 个订单'}">0 个订单</span>
+          </div>
+        </div>
+      </section>
+
+      <form method="get" th:action="@{/admin/orders}" style="margin-top:14px">
+        <div class="filter-bar">
+          <select name="status">
+            <option value="">全部状态</option>
+            <option value="PENDING_PAYMENT" th:selected="${currentStatus == 'PENDING_PAYMENT'}">待支付</option>
+            <option value="PAID" th:selected="${currentStatus == 'PAID'}">已支付</option>
+            <option value="CANCELLED" th:selected="${currentStatus == 'CANCELLED'}">已取消</option>
+          </select>
+          <input type="text" name="orderNo" class="input" placeholder="搜索订单号..." th:value="${currentOrderNo}" />
+          <button class="btn primary" type="submit">搜索</button>
+          <a class="btn" href="/admin/orders">重置</a>
+        </div>
+      </form>
+
+      <div th:if="${#lists.isEmpty(orders)}" class="empty-orders">
+        <div class="icon">📦</div>
+        <p>暂无订单</p>
+      </div>
+
+      <div th:if="${not #lists.isEmpty(orders)}">
+        <div class="order-card" th:each="order : ${orders}">
+          <div class="order-card-header">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <span class="order-no-badge" th:text="${order.orderNo}">ORD</span>
+              <span class="order-user" th:if="${order.username != null}" th:text="'用户：' + ${order.username}">用户</span>
+            </div>
+            <span class="status-badge pending" th:if="${order.status == 'PENDING_PAYMENT'}">⏳ 待支付</span>
+            <span class="status-badge paid" th:if="${order.status == 'PAID'}">✅ 已支付</span>
+            <span class="status-badge cancelled" th:if="${order.status == 'CANCELLED'}">❌ 已取消</span>
+          </div>
+          <div class="order-items-preview">
+            <span class="item-tag" th:each="item : ${order.items}" th:text="${item.productName + ' x' + item.quantity}">商品 x1</span>
+          </div>
+          <div class="order-card-footer">
+            <div>
+              <div class="order-amount"><span th:text="${order.totalAmount}">0.00</span> 元</div>
+              <div class="order-time" th:text="${#temporals.format(order.createdAt, 'yyyy-MM-dd HH:mm')}">2025-01-01 00:00</div>
+            </div>
+            <div>
+              <a class="btn" th:href="@{'/admin/orders/' + ${order.id}}">详情</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script th:if="${flashOk}" th:inline="javascript">
+      window.AppToast && window.AppToast.ok([[${flashOk}]]);
+    </script>
+    <script th:if="${flashError}" th:inline="javascript">
+      window.AppToast && window.AppToast.bad([[${flashError}]]);
+    </script>
+  </body>
+</html>

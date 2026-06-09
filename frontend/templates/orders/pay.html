@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>订单支付</title>
+    <link rel="stylesheet" href="/assets/app.css" />
+    <script defer src="/assets/app.js"></script>
+    <style>
+      .countdown-bar{background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(239,68,68,.08));border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:10px;margin-bottom:16px}
+      .countdown-bar.expired{background:linear-gradient(135deg,rgba(239,68,68,.12),rgba(239,68,68,.08));border-color:rgba(239,68,68,.3)}
+      .countdown-bar .icon{font-size:22px}
+      .countdown-bar .text{font-weight:600;color:#d97706}
+      .countdown-bar.expired .text{color:var(--danger)}
+      .countdown-bar .timer{font-size:20px;font-weight:800;color:#d97706;font-variant-numeric:tabular-nums}
+      .countdown-bar.expired .timer{color:var(--danger)}
+      .order-header{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap}
+      .order-no{font-family:monospace;font-size:13px;color:var(--muted);background:var(--bg0);padding:3px 8px;border-radius:6px}
+      .pay-item{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px dashed var(--stroke)}
+      .pay-item:last-child{border-bottom:none}
+      .pay-item .name{font-weight:600}
+      .pay-item .meta{color:var(--muted);font-size:12px;margin-top:4px}
+      .pay-item .right{text-align:right}
+      .pay-item .subtotal{font-weight:700;color:var(--brand1)}
+      .summary-card{background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(37,99,235,.08));border:1px solid rgba(124,58,237,.2);border-radius:14px;padding:16px;margin-top:14px}
+      .summary-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
+      .summary-row.total{border-top:2px solid var(--stroke);margin-top:8px;padding-top:12px}
+      .summary-row .label{color:var(--muted)}
+      .summary-row .value{font-weight:650}
+      .summary-row.total .label{font-size:16px;color:var(--text);font-weight:700}
+      .summary-row.total .value{font-size:24px;font-weight:800;color:var(--brand1)}
+      .pay-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+      .paid-success{background:linear-gradient(135deg,rgba(22,163,74,.1),rgba(16,185,129,.08));border:1px solid rgba(22,163,74,.3);border-radius:14px;padding:24px;text-align:center;margin-bottom:16px}
+      .paid-success .icon{font-size:48px;margin-bottom:8px}
+      .paid-success .title{font-size:20px;font-weight:800;color:var(--ok)}
+      .paid-success .desc{color:var(--muted);margin-top:6px}
+    </style>
+  </head>
+  <body class="page-order-pay">
+    <header class="topbar">
+      <div class="inner">
+        <a class="brand" href="/"><span class="dot"></span><span>订单支付</span></a>
+        <nav class="nav">
+          <a class="btn" href="/dashboard">数据看板</a>
+          <a class="btn" href="/products">产品列表</a>
+          <a class="btn" href="/cart">购物车</a>
+          <a class="btn" href="/orders">我的订单</a>
+          <div class="pill" th:if="${#authorization.expression('isAuthenticated()')}">
+            <span class="spark"></span><span th:text="'当前用户：' + ${username}">当前用户</span>
+          </div>
+          <form method="post" action="/logout" th:if="${#authorization.expression('isAuthenticated()')}">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            <button class="btn" type="submit">退出</button>
+          </form>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <div th:if="${order.status == 'PAID'}" class="paid-success">
+        <div class="icon">✅</div>
+        <div class="title">支付成功</div>
+        <div class="desc">订单号：<span th:text="${order.orderNo}">ORD</span>，感谢您的购买！</div>
+        <div style="margin-top:16px;display:flex;gap:10px;justify-content:center">
+          <a class="btn" th:href="@{'/orders/' + ${order.id}}">查看订单详情</a>
+          <a class="btn primary" href="/products">继续购物</a>
+        </div>
+      </div>
+
+      <div th:if="${order.status != 'PAID'}">
+        <div th:if="${isExpired}" class="countdown-bar expired">
+          <span class="icon">⏰</span>
+          <span class="text">订单已超时</span>
+          <span class="timer">已过期</span>
+        </div>
+        <div th:if="${!isExpired and order.status == 'PENDING_PAYMENT'}" class="countdown-bar">
+          <span class="icon">⏳</span>
+          <span class="text">请在倒计时内完成支付</span>
+          <span class="timer" id="countdown-timer" th:data-remaining="${remainingSeconds}">--:--</span>
+        </div>
+
+        <section class="card pad compact">
+          <div class="order-header">
+            <div>
+              <h1 class="h1" style="margin-top:8px">订单支付</h1>
+              <p class="sub">确认订单信息后完成支付</p>
+            </div>
+            <div>
+              <span class="order-no" th:text="${order.orderNo}">ORD20250101000001</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card pad" style="margin-top:14px">
+          <h3 style="margin:0 0 12px 0">商品清单</h3>
+          <div class="pay-item" th:each="item : ${order.items}">
+            <div>
+              <div class="name" th:text="${item.productName}">商品名称</div>
+              <div class="meta">
+                单价：<span th:text="${item.productPrice}">0</span> 元
+                <span style="margin:0 6px">·</span>
+                数量：<span th:text="${item.quantity}">1</span>
+              </div>
+            </div>
+            <div class="right">
+              <div class="subtotal"><span th:text="${item.subtotal}">0.00</span> 元</div>
+            </div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-row">
+              <span class="label">商品总数</span>
+              <span class="value" th:text="${#aggregates.sum(order.items.![quantity]) + ' 件'">0 件</span>
+            </div>
+            <div class="summary-row total">
+              <span class="label">应付总额</span>
+              <span class="value"><span th:text="${order.totalAmount}">0.00</span> 元</span>
+            </div>
+          </div>
+
+          <div class="pay-actions" th:if="${order.status == 'PENDING_PAYMENT' and !isExpired}">
+            <a class="btn" href="/orders">返回订单列表</a>
+            <form method="post" th:action="@{'/orders/' + ${order.id} + '/cancel'}" style="display:inline">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+              <button class="btn danger" type="submit" data-confirm="确定取消该订单？取消后预占库存将释放。">取消订单</button>
+            </form>
+            <form method="post" th:action="@{'/orders/' + ${order.id} + '/pay'}" style="display:inline">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+              <button class="btn primary" type="submit" data-confirm="确认支付？">确认支付</button>
+            </form>
+          </div>
+
+          <div class="pay-actions" th:if="${order.status == 'CANCELLED'}">
+            <a class="btn primary" href="/products">重新选购</a>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      (function(){
+        var el = document.getElementById('countdown-timer');
+        if(!el) return;
+        var remaining = parseInt(el.getAttribute('data-remaining')) || 0;
+        function update(){
+          if(remaining <= 0){
+            el.textContent = '已过期';
+            el.closest('.countdown-bar')?.classList.add('expired');
+            location.reload();
+            return;
+          }
+          var m = Math.floor(remaining / 60);
+          var s = remaining % 60;
+          el.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+          remaining--;
+          setTimeout(update, 1000);
+        }
+        update();
+      })();
+    </script>
+
+    <script th:if="${flashOk}" th:inline="javascript">
+      window.AppToast && window.AppToast.ok([[${flashOk}]]);
+    </script>
+    <script th:if="${flashError}" th:inline="javascript">
+      window.AppToast && window.AppToast.bad([[${flashError}]]);
+    </script>
+  </body>
+</html>

@@ -18,7 +18,9 @@
           <a class="btn" href="/products">产品管理</a>
           <a class="btn" href="/categories">产品分类</a>
           <a class="btn" href="/cart">购物车</a>
+          <a class="btn" href="/orders">我的订单</a>
           <a class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/admin/users">用户管理</a>
+          <a class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/admin/orders">订单管理</a>
           <a class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/operation-logs">审计日志</a>
           <a class="btn" href="/notifications">
             <span class="notification-nav-btn">

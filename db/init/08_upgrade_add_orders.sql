@@ -1,0 +1,30 @@
+-- 创建订单相关表
+USE lab3392;
+
+CREATE TABLE IF NOT EXISTS orders (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  order_no VARCHAR(32) NOT NULL UNIQUE,
+  total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING_PAYMENT',
+  expire_at DATETIME DEFAULT NULL,
+  paid_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_orders_user_id (user_id),
+  INDEX idx_orders_status (status),
+  INDEX idx_orders_expire_at (expire_at),
+  CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS order_items (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_id BIGINT NOT NULL,
+  product_id BIGINT NOT NULL,
+  product_name VARCHAR(50) NOT NULL,
+  product_price DECIMAL(10,2) NOT NULL,
+  quantity INT NOT NULL,
+  subtotal DECIMAL(10,2) NOT NULL,
+  CONSTRAINT fk_order_items_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  CONSTRAINT fk_order_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
