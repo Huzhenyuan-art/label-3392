@@ -101,20 +101,22 @@ public class ProductController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/products/new")
-    public String createForm(Model model) {
+    public String createForm(Model model, @RequestParam(required = false) String returnUrl) {
         model.addAttribute("mode", "create");
         model.addAttribute("form", ProductForm.empty());
         model.addAttribute("categories", categoryService.listAllActive());
+        model.addAttribute("returnUrl", returnUrl);
         return "products/form";
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/products")
-    public String create(@Valid @ModelAttribute("form") ProductForm form, BindingResult binding, Model model, RedirectAttributes ra, Principal principal) {
+    public String create(@Valid @ModelAttribute("form") ProductForm form, BindingResult binding, Model model, RedirectAttributes ra, Principal principal, @RequestParam(required = false) String returnUrl) {
         if (binding.hasErrors()) {
             model.addAttribute("mode", "create");
             model.addAttribute("categories", categoryService.listAllActive());
             model.addAttribute("error", binding.getAllErrors().isEmpty() ? "表单校验失败" : binding.getAllErrors().get(0).getDefaultMessage());
+            model.addAttribute("returnUrl", returnUrl);
             return "products/form";
         }
         try {
@@ -127,29 +129,32 @@ public class ProductController {
             model.addAttribute("mode", "create");
             model.addAttribute("categories", categoryService.listAllActive());
             model.addAttribute("error", ex.getMessage());
+            model.addAttribute("returnUrl", returnUrl);
             return "products/form";
         }
         ra.addFlashAttribute("flashOk", "创建成功");
-        return "redirect:/products";
+        return safeRedirect(returnUrl);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/products/{id}/edit")
-    public String editForm(@PathVariable Long id, Model model) {
+    public String editForm(@PathVariable Long id, Model model, @RequestParam(required = false) String returnUrl) {
         Product p = productService.getByIdOrThrow(id);
         model.addAttribute("mode", "edit");
         model.addAttribute("form", ProductForm.fromEntity(p));
         model.addAttribute("categories", categoryService.listAllActive());
+        model.addAttribute("returnUrl", returnUrl);
         return "products/form";
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/products/{id}")
-    public String update(@PathVariable Long id, @Valid @ModelAttribute("form") ProductForm form, BindingResult binding, Model model, RedirectAttributes ra, Principal principal) {
+    public String update(@PathVariable Long id, @Valid @ModelAttribute("form") ProductForm form, BindingResult binding, Model model, RedirectAttributes ra, Principal principal, @RequestParam(required = false) String returnUrl) {
         if (binding.hasErrors()) {
             model.addAttribute("mode", "edit");
             model.addAttribute("categories", categoryService.listAllActive());
             model.addAttribute("error", binding.getAllErrors().isEmpty() ? "表单校验失败" : binding.getAllErrors().get(0).getDefaultMessage());
+            model.addAttribute("returnUrl", returnUrl);
             return "products/form";
         }
         try {
@@ -164,15 +169,16 @@ public class ProductController {
             model.addAttribute("mode", "edit");
             model.addAttribute("categories", categoryService.listAllActive());
             model.addAttribute("error", ex.getMessage());
+            model.addAttribute("returnUrl", returnUrl);
             return "products/form";
         }
         ra.addFlashAttribute("flashOk", "更新成功");
-        return "redirect:/products";
+        return safeRedirect(returnUrl);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/products/{id}/delete")
-    public String delete(@PathVariable Long id, RedirectAttributes ra, Principal principal) {
+    public String delete(@PathVariable Long id, RedirectAttributes ra, Principal principal, @RequestParam(required = false) String returnUrl) {
         Product existing = productService.getByIdOrThrow(id);
         productService.delete(id);
         User operator = getCurrentOperator(principal);
@@ -180,7 +186,7 @@ public class ProductController {
             operationLogService.logProductDelete(existing, operator.getId(), operator.getUsername());
         }
         ra.addFlashAttribute("flashOk", "删除成功");
-        return "redirect:/products";
+        return safeRedirect(returnUrl);
     }
 
     private User getCurrentOperator(Principal principal) {
@@ -232,17 +238,18 @@ public class ProductController {
     public String importCsv(
             @RequestParam("file") MultipartFile file,
             RedirectAttributes ra,
-            Principal principal
+            Principal principal,
+            @RequestParam(required = false) String returnUrl
     ) {
         if (file.isEmpty()) {
             ra.addFlashAttribute("flashBad", "请选择要上传的CSV文件");
-            return "redirect:/products";
+            return safeRedirect(returnUrl);
         }
 
         String fileName = file.getOriginalFilename();
         if (fileName == null || !fileName.toLowerCase().endsWith(".csv")) {
             ra.addFlashAttribute("flashBad", "请上传CSV格式的文件");
-            return "redirect:/products";
+            return safeRedirect(returnUrl);
         }
 
         try {
@@ -271,12 +278,19 @@ public class ProductController {
             ra.addFlashAttribute("flashBad", "导入失败：" + e.getMessage());
         }
 
-        return "redirect:/products";
+        return safeRedirect(returnUrl);
     }
 
     private static String trimToNull(String s) {
         if (s == null) return null;
         String t = s.trim();
         return t.isEmpty() ? null : t;
+    }
+
+    private static String safeRedirect(String returnUrl) {
+        if (returnUrl != null && !returnUrl.isBlank() && returnUrl.startsWith("/products")) {
+            return "redirect:" + returnUrl;
+        }
+        return "redirect:/products";
     }
 }

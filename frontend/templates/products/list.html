@@ -37,7 +37,7 @@
       </div>
     </header>
 
-    <main class="container">
+    <main class="container" th:with="returnUrl=@{/products(name=${nameRaw},minPrice=${minPriceRaw},maxPrice=${maxPriceRaw},pageSize=${pageSize},page=${page.current})}">
       <section class="card pad compact">
         <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:10px; flex-wrap:wrap">
           <div>
@@ -76,7 +76,7 @@
           <div class="actions">
             <button class="btn primary" type="submit">查询</button>
             <a class="btn" href="/products">重置</a>
-            <a class="btn primary" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" href="/products/new">新增产品</a>
+            <a class="btn primary" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" th:href="@{/products/new(returnUrl=${returnUrl})}">新增产品</a>
             <button class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" type="button" id="btnExportCsv">导出CSV</button>
             <button class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" type="button" id="btnImportCsv">导入CSV</button>
           </div>
@@ -117,9 +117,10 @@
                 <td class="col-actions">
                   <div style="display:flex; gap:8px; flex-wrap:wrap">
                     <a class="btn" th:href="@{'/products/' + ${p.id}}">详情</a>
-                    <a class="btn" th:href="@{'/products/' + ${p.id} + '/edit'}" th:if="${#authorization.expression('hasRole(''ADMIN'')')}">编辑</a>
+                    <a class="btn" th:href="@{/products/{id}/edit(id=${p.id}, returnUrl=${returnUrl})}" th:if="${#authorization.expression('hasRole(''ADMIN'')')}">编辑</a>
                     <form method="post" th:action="@{'/products/' + ${p.id} + '/delete'}" th:if="${#authorization.expression('hasRole(''ADMIN'')')}">
                       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                      <input type="hidden" name="returnUrl" th:value="${returnUrl}" />
                       <button class="btn danger" type="submit" data-confirm="确定删除该产品吗？">删除</button>
                     </form>
                   </div>
@@ -214,6 +215,7 @@
 
     <form id="importForm" method="post" action="/products/import" enctype="multipart/form-data" style="display:none">
       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+      <input type="hidden" name="returnUrl" th:value="${returnUrl}" />
       <input type="file" name="file" id="importFormFile" />
     </form>
 
