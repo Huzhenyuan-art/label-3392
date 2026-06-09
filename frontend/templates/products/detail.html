@@ -88,11 +88,17 @@
           </div>
           <div class="kv-row">
             <div class="kv-k">创建时间</div>
-            <div class="kv-v" th:text="${#temporals.format(product.createdAt, 'yyyy-MM-dd HH:mm')}">time</div>
+            <div class="kv-v">
+              <span th:text="${#temporals.format(product.createdAt, 'yyyy-MM-dd HH:mm')}">time</span>
+              <span class="time-relative" th:attr="data-datetime=${#temporals.format(product.createdAt, 'yyyy-MM-dd\'T\'HH:mm:ss')}"></span>
+            </div>
           </div>
           <div class="kv-row">
             <div class="kv-k">更新时间</div>
-            <div class="kv-v" th:text="${#temporals.format(product.updatedAt, 'yyyy-MM-dd HH:mm')}">time</div>
+            <div class="kv-v">
+              <span th:text="${#temporals.format(product.updatedAt, 'yyyy-MM-dd HH:mm')}">time</span>
+              <span class="time-relative" th:attr="data-datetime=${#temporals.format(product.updatedAt, 'yyyy-MM-dd\'T\'HH:mm:ss')}"></span>
+            </div>
           </div>
         </div>
 
@@ -119,6 +125,28 @@
     </script>
     <script th:if="${flashError}" th:inline="javascript">
       window.AppToast && window.AppToast.bad([[${flashError}]]);
+    </script>
+    <script>
+    (function(){
+      function relativeTime(iso){
+        var then=new Date(iso);
+        var now=new Date();
+        var diff=now-then;
+        var abs=Math.abs(diff);
+        var prefix=diff>=0?'':'';
+        var suffix=diff>=0?'前':'后';
+        if(abs<60000) return '刚刚';
+        if(abs<3600000) return prefix+Math.floor(abs/60000)+' 分钟'+suffix;
+        if(abs<86400000) return prefix+Math.floor(abs/3600000)+' 小时'+suffix;
+        if(abs<2592000000) return prefix+Math.floor(abs/86400000)+' 天'+suffix;
+        if(abs<31536000000) return prefix+Math.floor(abs/2592000000)+' 个月'+suffix;
+        return prefix+Math.floor(abs/31536000000)+' 年'+suffix;
+      }
+      document.querySelectorAll('.time-relative[data-datetime]').forEach(function(el){
+        var iso=el.getAttribute('data-datetime');
+        if(iso) el.textContent='('+relativeTime(iso)+')';
+      });
+    })();
     </script>
   </body>
 </html>
