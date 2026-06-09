@@ -35,7 +35,6 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -86,17 +85,7 @@ public class ProductServiceImpl implements ProductService {
     @Cacheable(cacheNames = "productPagesV5",
             key = "(#q.normalizedName()?:'') + '|' + (#q.minPrice()?:'') + '|' + (#q.maxPrice()?:'') + '|' + #page + '|' + #size")
     public IPage<Product> search(ProductQuery q, long page, long size) {
-        String name = q.normalizedName();
-        BigDecimal min = q.minPrice();
-        BigDecimal max = q.maxPrice();
-
-        LambdaQueryWrapper<Product> w = new LambdaQueryWrapper<>();
-        if (name != null) w.like(Product::getName, name);
-        if (min != null) w.ge(Product::getPrice, min);
-        if (max != null) w.le(Product::getPrice, max);
-        w.orderByDesc(Product::getUpdatedAt, Product::getId);
-
-        IPage<Product> result = productMapper.selectPage(new Page<>(page, size), w);
+        IPage<Product> result = productMapper.selectPage(new Page<>(page, size), buildProductQueryWrapper(q));
         populateCategoryNames(result.getRecords());
         return result;
     }
@@ -128,7 +117,6 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    @CacheEvict(cacheNames = {"productPagesV5", "productPagesV4", "productPagesV3", "productPagesV2", "productPages"}, allEntries = true)
     public Product create(ProductForm form, MultipartFile coverImage) {
         validateCategory(form.categoryId());
         Product p = new Product();
@@ -140,12 +128,12 @@ public class ProductServiceImpl implements ProductService {
         p.setStock(form.stock());
         p.setStatus(form.status());
         productMapper.insert(p);
+        cacheService.evictAllProductCaches();
         cacheService.evictAllDashboardCaches();
         return p;
     }
 
     @Override
-    @CacheEvict(cacheNames = {"productPagesV5", "productPagesV4", "productPagesV3", "productPagesV2", "productPages"}, allEntries = true)
     @Transactional
     public void update(Long id, ProductForm form, MultipartFile coverImage) {
         Product existing = getByIdOrThrow(id);
@@ -162,40 +150,14 @@ public class ProductServiceImpl implements ProductService {
         existing.setStatus(form.status());
         productMapper.updateById(existing);
 
-        boolean stockChanged = !Objects.equals(oldStock, form.stock());
-        boolean statusChanged = !Objects.equals(oldStatus, form.status());
-
-        if (stockChanged || statusChanged) {
-            StringBuilder title = new StringBuilder();
-            StringBuilder content = new StringBuilder();
-            title.append("产品「").append(existing.getName()).append("」");
-
-            List<String> changes = new ArrayList<>();
-            if (stockChanged) {
-                changes.add(String.format("库存从 %d 变更为 %d", oldStock, form.stock()));
-            }
-            if (statusChanged) {
-                String oldStatusText = "ACTIVE".equals(oldStatus) ? "启用" : "停用";
-                String newStatusText = "ACTIVE".equals(form.status()) ? "启用" : "停用";
-                changes.add(String.format("状态从 %s 变更为 %s", oldStatusText, newStatusText));
-            }
-
-            title.append("信息已更新");
-            content.append(String.join("；", changes));
-
-            notificationService.createNotificationsForAllUsers(
-                    "PRODUCT_UPDATE",
-                    title.toString(),
-                    content.toString(),
-                    id
-            );
+        if (notifyProductChange(existing.getName(), oldStock, form.stock(), oldStatus, form.status(), id)) {
             cacheService.evictNotificationCachesForProduct(id);
         }
+        cacheService.evictAllProductCaches();
         cacheService.evictAllDashboardCaches();
     }
 
     @Override
-    @CacheEvict(cacheNames = {"productPagesV5", "productPagesV4", "productPagesV3", "productPagesV2", "productPages"}, allEntries = true)
     @Transactional
     public void delete(Long id) {
         Product existing = productMapper.selectById(id);
@@ -210,23 +172,14 @@ public class ProductServiceImpl implements ProductService {
                 "该产品已被管理员移除，请注意查看",
                 null
         );
+        cacheService.evictAllProductCaches();
         cacheService.evictNotificationCachesForProduct(id);
         cacheService.evictAllDashboardCaches();
     }
 
     @Override
     public List<Product> findAllByQuery(ProductQuery q) {
-        String name = q.normalizedName();
-        BigDecimal min = q.minPrice();
-        BigDecimal max = q.maxPrice();
-
-        LambdaQueryWrapper<Product> w = new LambdaQueryWrapper<>();
-        if (name != null) w.like(Product::getName, name);
-        if (min != null) w.ge(Product::getPrice, min);
-        if (max != null) w.le(Product::getPrice, max);
-        w.orderByDesc(Product::getUpdatedAt, Product::getId);
-
-        List<Product> products = productMapper.selectList(w);
+        List<Product> products = productMapper.selectList(buildProductQueryWrapper(q));
         populateCategoryNames(products);
         return products;
     }
@@ -376,36 +329,11 @@ public class ProductServiceImpl implements ProductService {
                 if (product.getId() != null) {
                     Integer oldStock = oldStockMap.get(product.getId());
                     String oldStatus = oldStatusMap.get(product.getId());
-                    boolean stockChanged = !Objects.equals(oldStock, product.getStock());
-                    boolean statusChanged = !Objects.equals(oldStatus, product.getStatus());
 
                     productMapper.updateById(product);
 
-                    if (stockChanged || statusChanged) {
+                    if (notifyProductChange(product.getName(), oldStock, product.getStock(), oldStatus, product.getStatus(), product.getId())) {
                         changedProductIds.add(product.getId());
-                        StringBuilder title = new StringBuilder();
-                        StringBuilder content = new StringBuilder();
-                        title.append("产品「").append(product.getName()).append("」");
-
-                        List<String> changes = new ArrayList<>();
-                        if (stockChanged) {
-                            changes.add(String.format("库存从 %d 变更为 %d", oldStock, product.getStock()));
-                        }
-                        if (statusChanged) {
-                            String oldStatusText = "ACTIVE".equals(oldStatus) ? "启用" : "停用";
-                            String newStatusText = "ACTIVE".equals(product.getStatus()) ? "启用" : "停用";
-                            changes.add(String.format("状态从 %s 变更为 %s", oldStatusText, newStatusText));
-                        }
-
-                        title.append("信息已更新");
-                        content.append(String.join("；", changes));
-
-                        notificationService.createNotificationsForAllUsers(
-                                "PRODUCT_UPDATE",
-                                title.toString(),
-                                content.toString(),
-                                product.getId()
-                        );
                     }
                 } else {
                     productMapper.insert(product);
@@ -425,6 +353,50 @@ public class ProductServiceImpl implements ProductService {
         }
 
         return result;
+    }
+
+    private LambdaQueryWrapper<Product> buildProductQueryWrapper(ProductQuery q) {
+        String name = q.normalizedName();
+        BigDecimal min = q.minPrice();
+        BigDecimal max = q.maxPrice();
+        LambdaQueryWrapper<Product> w = new LambdaQueryWrapper<>();
+        if (name != null) w.like(Product::getName, name);
+        if (min != null) w.ge(Product::getPrice, min);
+        if (max != null) w.le(Product::getPrice, max);
+        w.orderByDesc(Product::getUpdatedAt, Product::getId);
+        return w;
+    }
+
+    private boolean notifyProductChange(String productName, Integer oldStock, Integer newStock,
+                                         String oldStatus, String newStatus, Long productId) {
+        boolean stockChanged = !Objects.equals(oldStock, newStock);
+        boolean statusChanged = !Objects.equals(oldStatus, newStatus);
+        if (!stockChanged && !statusChanged) return false;
+
+        StringBuilder title = new StringBuilder();
+        StringBuilder content = new StringBuilder();
+        title.append("产品「").append(productName).append("」");
+
+        List<String> changes = new ArrayList<>();
+        if (stockChanged) {
+            changes.add(String.format("库存从 %d 变更为 %d", oldStock, newStock));
+        }
+        if (statusChanged) {
+            String oldStatusText = "ACTIVE".equals(oldStatus) ? "启用" : "停用";
+            String newStatusText = "ACTIVE".equals(newStatus) ? "启用" : "停用";
+            changes.add(String.format("状态从 %s 变更为 %s", oldStatusText, newStatusText));
+        }
+
+        title.append("信息已更新");
+        content.append(String.join("；", changes));
+
+        notificationService.createNotificationsForAllUsers(
+                "PRODUCT_UPDATE",
+                title.toString(),
+                content.toString(),
+                productId
+        );
+        return true;
     }
 
     private String getValueOrNull(CSVRecord record, String... keys) {

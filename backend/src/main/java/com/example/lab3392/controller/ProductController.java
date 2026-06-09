@@ -11,10 +11,10 @@ import com.example.lab3392.service.OperationLogService;
 import com.example.lab3392.service.ProductCategoryService;
 import com.example.lab3392.service.ProductService;
 import com.example.lab3392.service.UserService;
+import com.example.lab3392.util.PriceRangeParser;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -68,40 +68,19 @@ public class ProductController {
             Model model,
             Principal principal
     ) {
-        String minRaw = trimToNull(minPrice);
-        String maxRaw = trimToNull(maxPrice);
-
-        String priceError = null;
-        BigDecimal minVal = null;
-        BigDecimal maxVal = null;
-
-        boolean minPresent = minRaw != null;
-        boolean maxPresent = maxRaw != null;
-        if (minPresent ^ maxPresent) {
-            priceError = "价格区间需同时填写最小价和最大价（或同时留空）";
-        } else if (minPresent) {
-            try {
-                minVal = new BigDecimal(minRaw);
-                maxVal = new BigDecimal(maxRaw);
-                if (minVal.compareTo(maxVal) > 0) {
-                    priceError = "价格区间不合法：最小价不能大于最大价";
-                }
-            } catch (NumberFormatException ex) {
-                priceError = "价格区间请输入数字，例如：199.00";
-            }
-        }
+        PriceRangeParser.PriceRangeResult priceResult = PriceRangeParser.parse(minPrice, maxPrice);
 
         long safePageSize = (pageSize == 10 || pageSize == 20 || pageSize == 50) ? pageSize : 10;
 
-        ProductQuery q = new ProductQuery(name, priceError == null ? minVal : null, priceError == null ? maxVal : null);
+        ProductQuery q = new ProductQuery(name, priceResult.minPrice(), priceResult.maxPrice());
         model.addAttribute("q", q);
-        long safePage = priceError == null ? page : 1;
+        long safePage = priceResult.hasError() ? 1 : page;
         model.addAttribute("page", productService.search(q, safePage, safePageSize));
         model.addAttribute("username", principal != null ? principal.getName() : "");
         model.addAttribute("nameRaw", Objects.toString(name, ""));
         model.addAttribute("minPriceRaw", Objects.toString(minPrice, ""));
         model.addAttribute("maxPriceRaw", Objects.toString(maxPrice, ""));
-        model.addAttribute("priceError", priceError);
+        model.addAttribute("priceError", priceResult.errorMessage());
         model.addAttribute("pageSize", safePageSize);
         return "products/list";
     }
@@ -131,11 +110,8 @@ public class ProductController {
                          Model model, RedirectAttributes ra, Principal principal,
                          @RequestParam(required = false) String returnUrl) {
         if (binding.hasErrors()) {
-            model.addAttribute("mode", "create");
-            model.addAttribute("categories", categoryService.listAllActive());
-            model.addAttribute("error", binding.getAllErrors().isEmpty() ? "表单校验失败" : binding.getAllErrors().get(0).getDefaultMessage());
-            model.addAttribute("returnUrl", returnUrl);
-            model.addAttribute("coverImage", null);
+            populateFormModel(model, "create", returnUrl, null,
+                    binding.getAllErrors().isEmpty() ? "表单校验失败" : binding.getAllErrors().get(0).getDefaultMessage());
             return "products/form";
         }
         try {
@@ -145,11 +121,7 @@ public class ProductController {
                 operationLogService.logProductCreate(created, operator.getId(), operator.getUsername());
             }
         } catch (IllegalArgumentException ex) {
-            model.addAttribute("mode", "create");
-            model.addAttribute("categories", categoryService.listAllActive());
-            model.addAttribute("error", ex.getMessage());
-            model.addAttribute("returnUrl", returnUrl);
-            model.addAttribute("coverImage", null);
+            populateFormModel(model, "create", returnUrl, null, ex.getMessage());
             return "products/form";
         }
         ra.addFlashAttribute("flashOk", "创建成功");
@@ -175,11 +147,8 @@ public class ProductController {
                          Model model, RedirectAttributes ra, Principal principal,
                          @RequestParam(required = false) String returnUrl) {
         if (binding.hasErrors()) {
-            model.addAttribute("mode", "edit");
-            model.addAttribute("categories", categoryService.listAllActive());
-            model.addAttribute("error", binding.getAllErrors().isEmpty() ? "表单校验失败" : binding.getAllErrors().get(0).getDefaultMessage());
-            model.addAttribute("returnUrl", returnUrl);
-            model.addAttribute("coverImage", productService.getByIdOrThrow(id).getCoverImage());
+            populateFormModel(model, "edit", returnUrl, productService.getByIdOrThrow(id).getCoverImage(),
+                    binding.getAllErrors().isEmpty() ? "表单校验失败" : binding.getAllErrors().get(0).getDefaultMessage());
             return "products/form";
         }
         try {
@@ -191,11 +160,7 @@ public class ProductController {
                 operationLogService.logProductUpdate(before, after, operator.getId(), operator.getUsername());
             }
         } catch (IllegalArgumentException ex) {
-            model.addAttribute("mode", "edit");
-            model.addAttribute("categories", categoryService.listAllActive());
-            model.addAttribute("error", ex.getMessage());
-            model.addAttribute("returnUrl", returnUrl);
-            model.addAttribute("coverImage", productService.getByIdOrThrow(id).getCoverImage());
+            populateFormModel(model, "edit", returnUrl, productService.getByIdOrThrow(id).getCoverImage(), ex.getMessage());
             return "products/form";
         }
         ra.addFlashAttribute("flashOk", "更新成功");
@@ -243,19 +208,8 @@ public class ProductController {
             HttpServletResponse response,
             Principal principal
     ) throws IOException {
-        String minRaw = trimToNull(minPrice);
-        String maxRaw = trimToNull(maxPrice);
-
-        BigDecimal minVal = null;
-        BigDecimal maxVal = null;
-
-        try {
-            if (minRaw != null) minVal = new BigDecimal(minRaw);
-            if (maxRaw != null) maxVal = new BigDecimal(maxRaw);
-        } catch (NumberFormatException ignored) {
-        }
-
-        ProductQuery q = new ProductQuery(name, minVal, maxVal);
+        PriceRangeParser.PriceRangeResult priceResult = PriceRangeParser.parse(minPrice, maxPrice);
+        ProductQuery q = new ProductQuery(name, priceResult.minPrice(), priceResult.maxPrice());
 
         String fileName = URLEncoder.encode("产品列表.csv", StandardCharsets.UTF_8);
         response.setContentType("text/csv; charset=UTF-8");
@@ -325,14 +279,16 @@ public class ProductController {
     @PostMapping("/products/cache/refresh")
     @org.springframework.web.bind.annotation.ResponseBody
     public ResponseEntity<Map<String, String>> refreshCache() {
-        cacheService.evictProductPagesV3Cache();
-        return ResponseEntity.ok(Map.of("message", "productPagesV3 缓存已刷新"));
+        cacheService.evictAllProductCaches();
+        return ResponseEntity.ok(Map.of("message", "产品页面缓存已刷新"));
     }
 
-    private static String trimToNull(String s) {
-        if (s == null) return null;
-        String t = s.trim();
-        return t.isEmpty() ? null : t;
+    private void populateFormModel(Model model, String mode, String returnUrl, String coverImage, String error) {
+        model.addAttribute("mode", mode);
+        model.addAttribute("categories", categoryService.listAllActive());
+        model.addAttribute("error", error);
+        model.addAttribute("returnUrl", returnUrl);
+        model.addAttribute("coverImage", coverImage);
     }
 
     private static String safeRedirect(String returnUrl) {
