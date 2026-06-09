@@ -12,6 +12,9 @@ public class CacheService {
     private static final String[] NOTIFICATION_CACHE_NAMES = {
             "notificationPagesV1", "notificationUnreadV1"
     };
+    private static final String[] DASHBOARD_CACHE_NAMES = {
+            "dashboardStatsV1"
+    };
 
     public CacheService(CacheManager cacheManager) {
         this.cacheManager = cacheManager;
@@ -37,5 +40,14 @@ public class CacheService {
 
     public void evictNotificationCachesForProduct(Long productId) {
         evictAllNotificationCaches();
+    }
+
+    public void evictAllDashboardCaches() {
+        for (String cacheName : DASHBOARD_CACHE_NAMES) {
+            var cache = cacheManager.getCache(cacheName);
+            if (cache != null) {
+                cache.clear();
+            }
+        }
     }
 }

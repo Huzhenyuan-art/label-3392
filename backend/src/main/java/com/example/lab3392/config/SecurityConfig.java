@@ -46,7 +46,7 @@ public class SecurityConfig {
                                 response.addCookie(c);
                             }
 
-                            SimpleUrlAuthenticationSuccessHandler handler = new SimpleUrlAuthenticationSuccessHandler("/products");
+                            SimpleUrlAuthenticationSuccessHandler handler = new SimpleUrlAuthenticationSuccessHandler("/dashboard");
                             handler.setAlwaysUseDefaultTargetUrl(true);
                             handler.onAuthenticationSuccess(request, response, authentication);
                         })

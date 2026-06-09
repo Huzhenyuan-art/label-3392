@@ -620,6 +620,106 @@ input[type="file"]::file-selector-button:hover{
   opacity:.9;
 }
 
+body.page-dashboard .container{
+  max-width:none !important;
+  width:100% !important;
+  padding:18px 24px !important;
+}
+body.page-dashboard{
+  height:100vh;
+  height:100dvh;
+  width:100%;
+  position:fixed;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+body.page-dashboard main.container{
+  flex:1 1 auto;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  min-height:0;
+  overflow:auto;
+  margin:0 !important;
+}
+.dashboard-grid{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:14px;
+}
+@media (max-width: 720px){
+  .dashboard-grid{grid-template-columns:1fr}
+  body.page-dashboard .container{padding:14px 16px !important}
+}
+.stat-card{
+  display:flex;
+  align-items:center;
+  gap:16px;
+}
+.stat-icon{
+  font-size:32px;
+  width:56px;
+  height:56px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:14px;
+  background:rgba(37,99,235,.08);
+  flex-shrink:0;
+}
+.status-active-icon{background:rgba(22,163,74,.08)}
+.status-inactive-icon{background:rgba(107,114,128,.08)}
+.stat-body{min-width:0}
+.stat-label{
+  font-size:12px;
+  color:var(--muted);
+  letter-spacing:.3px;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+.stat-value{
+  font-size:28px;
+  font-weight:800;
+  line-height:1.1;
+  letter-spacing:-.5px;
+}
+.stat-pct{
+  font-size:13px;
+  color:var(--muted);
+  margin-top:2px;
+}
+.dashboard-charts{
+  display:grid;
+  grid-template-columns:1fr 1.6fr;
+  gap:14px;
+}
+@media (max-width: 900px){
+  .dashboard-charts{grid-template-columns:1fr}
+}
+.chart-card{
+  display:flex;
+  flex-direction:column;
+}
+.chart-title{
+  margin:0 0 14px 0;
+  font-size:16px;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+}
+.chart-wrap{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:220px;
+}
+.chart-wrap canvas{
+  max-height:280px;
+}
+
 /* Notification styles */
 .notification-nav-btn{
   position:relative;

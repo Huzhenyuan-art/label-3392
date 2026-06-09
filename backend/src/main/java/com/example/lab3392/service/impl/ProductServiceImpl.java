@@ -135,6 +135,7 @@ public class ProductServiceImpl implements ProductService {
         p.setStock(form.stock());
         p.setStatus(form.status());
         productMapper.insert(p);
+        cacheService.evictAllDashboardCaches();
         return p;
     }
 
@@ -184,6 +185,7 @@ public class ProductServiceImpl implements ProductService {
             );
             cacheService.evictNotificationCachesForProduct(id);
         }
+        cacheService.evictAllDashboardCaches();
     }
 
     @Override
@@ -202,6 +204,7 @@ public class ProductServiceImpl implements ProductService {
                 null
         );
         cacheService.evictNotificationCachesForProduct(id);
+        cacheService.evictAllDashboardCaches();
     }
 
     @Override
@@ -404,6 +407,7 @@ public class ProductServiceImpl implements ProductService {
 
             if (!productsToSave.isEmpty()) {
                 cacheService.evictAllProductCaches();
+                cacheService.evictAllDashboardCaches();
             }
             if (!changedProductIds.isEmpty()) {
                 cacheService.evictAllNotificationCaches();

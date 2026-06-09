@@ -135,7 +135,7 @@ class MvcSecurityIntegrationTest extends DbTestSupport {
                         .param("password", "123456")
                         .param("remember-me", "on"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/products"))
+                .andExpect(redirectedUrl("/dashboard"))
                 .andExpect(header().stringValues("Set-Cookie", hasItem(containsString("remember-me="))))
                 .andReturn();
 
