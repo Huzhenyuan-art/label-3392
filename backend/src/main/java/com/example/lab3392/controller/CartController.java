@@ -93,11 +93,13 @@ public class CartController {
         List<CartItem> items = cartService.getCurrentUserCart();
         List<String> errors = cartService.validateCartForCheckout(items);
         BigDecimal total = cartService.calculateTotal(items);
+        int totalQuantity = items.stream().mapToInt(CartItem::getQuantity).sum();
 
         model.addAttribute("items", items);
         model.addAttribute("total", total);
         model.addAttribute("errors", errors);
         model.addAttribute("canCheckout", errors.isEmpty());
+        model.addAttribute("totalQuantity", totalQuantity);
         model.addAttribute("username", principal != null ? principal.getName() : "");
         return "cart/checkout";
     }

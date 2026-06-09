@@ -2,6 +2,7 @@ package com.example.lab3392.controller;
 
 import com.example.lab3392.dto.OrderQuery;
 import com.example.lab3392.entity.Order;
+import com.example.lab3392.entity.OrderItem;
 import com.example.lab3392.entity.User;
 import com.example.lab3392.mapper.UserMapper;
 import com.example.lab3392.service.OrderService;
@@ -57,6 +58,7 @@ public class OrderController {
             Order order = orderService.getOrderById(id, userId);
             model.addAttribute("order", order);
             model.addAttribute("username", principal.getName());
+            model.addAttribute("totalQuantity", order.getItems() != null ? order.getItems().stream().mapToInt(OrderItem::getQuantity).sum() : 0);
 
             boolean isExpired = order.getExpireAt() != null &&
                     LocalDateTime.now().isAfter(order.getExpireAt());
@@ -121,6 +123,7 @@ public class OrderController {
             Order order = orderService.getOrderById(id, userId);
             model.addAttribute("order", order);
             model.addAttribute("username", principal.getName());
+            model.addAttribute("totalQuantity", order.getItems() != null ? order.getItems().stream().mapToInt(OrderItem::getQuantity).sum() : 0);
             return "orders/detail";
         } catch (SecurityException e) {
             return "redirect:/orders";
@@ -148,6 +151,7 @@ public class OrderController {
         model.addAttribute("order", order);
         model.addAttribute("username", principal.getName());
         model.addAttribute("isAdmin", true);
+        model.addAttribute("totalQuantity", order.getItems() != null ? order.getItems().stream().mapToInt(OrderItem::getQuantity).sum() : 0);
         return "orders/detail";
     }
 }

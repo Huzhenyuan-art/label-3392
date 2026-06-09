@@ -110,7 +110,7 @@
           <div class="summary-card">
             <div class="summary-row">
               <span class="label">商品总数</span>
-              <span class="value" th:text="${#aggregates.sum(order.items.![quantity]) + ' 件'">0 件</span>
+              <span class="value" th:text="|${totalQuantity} 件|">0 件</span>
             </div>
             <div class="summary-row total">
               <span class="label">应付总额</span>

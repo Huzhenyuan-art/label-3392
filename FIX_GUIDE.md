@@ -467,6 +467,42 @@
 
 ---
 
+### 修复 #012: 购物车结算页 Thymeleaf 表达式解析错误导致 500
+
+**修复时间**: 2026-06-09
+
+**问题描述**:
+- 用户在购物车页面点击「去结算」跳转到 `/cart/checkout` 时，页面显示 500 Internal Server Error (Whitelabel Error Page)
+- 后端日志抛出 `TemplateProcessingException: Could not parse as expression`
+
+**根本原因**:
+1. **字符串比较表达式引号歧义**：`checkout.html` 第 90 行 `th:if="${item.product.status == 'ACTIVE'"` 中，`'ACTIVE'` 后的双引号 `"` 被 Thymeleaf 解析器误认为属性值结束，导致表达式缺少闭合 `}`，触发解析异常
+2. **SpEL 投影操作符不兼容**：`checkout.html` 第 113 行使用 `${#aggregates.sum(items.![quantity]) + ' 件'}`，其中 `items.![quantity]` 是 SpEL 投影操作符，Thymeleaf 标准表达式解析器不支持此语法，导致解析失败
+
+**修复方案**:
+1. **替换字符串比较**：将 `th:if="${item.product.status == 'ACTIVE'}"` 改为使用 Thymeleaf `#strings.equals()` 工具方法 `th:if="${#strings.equals(item.product.status, 'ACTIVE')}"`，避免单引号与属性双引号的歧义
+2. **替换 SpEL 投影**：将 `#aggregates.sum(items.![quantity])` 替换为在 Controller 中计算 `totalQuantity` 并通过 `model.addAttribute("totalQuantity", ...)` 传入视图，模板中使用 `|${totalQuantity} 件|` 字面量替换语法
+3. **修复所有受影响模板**：同步修复 `orders/pay.html` 和 `orders/detail.html` 中的相同 `#aggregates.sum` 表达式
+
+**影响文件**:
+
+| 文件路径 | 修改内容 |
+|----------|----------|
+| `frontend/templates/cart/checkout.html` | 1) 将 `== 'ACTIVE'` 替换为 `#strings.equals()`；2) 将 `#aggregates.sum(items.![quantity])` 替换为 `${totalQuantity}`；3) 字符串拼接改用 `\|...\|` 字面量语法 |
+| `frontend/templates/orders/pay.html` | 将 `#aggregates.sum(order.items.![quantity])` 替换为 `${totalQuantity}` |
+| `frontend/templates/orders/detail.html` | 将 `#aggregates.sum(order.items.![quantity])` 替换为 `${totalQuantity}` |
+| `backend/src/main/java/.../controller/CartController.java` | `checkout()` 方法新增 `totalQuantity` 属性计算并传入 Model |
+| `backend/src/main/java/.../controller/OrderController.java` | `payPage()`、`orderDetail()`、`adminOrderDetail()` 方法新增 `totalQuantity` 属性计算并传入 Model |
+
+**修复状态**: ✅ 已完成
+
+**验证结果**:
+- `/cart/checkout` 页面正常渲染，不再出现 500 错误
+- 结算页正确显示商品清单、库存状态、总数量和总金额
+- 后端日志无 Thymeleaf 解析异常
+
+---
+
 ## 修复登记模板
 
 > 后续修复请复制以下模板并填写：

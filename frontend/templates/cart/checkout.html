@@ -87,14 +87,14 @@
               <span style="margin:0 6px">·</span>
               <span>数量：<span th:text="${item.quantity}">1</span></span>
               <span style="margin:0 6px">·</span>
-              <span th:if="${item.product.status == 'ACTIVE'" style="color:var(--ok)">✓ 在售</span>
+              <span th:if="${#strings.equals(item.product.status, 'ACTIVE')}" style="color:var(--ok)">✓ 在售</span>
               <span style="margin:0 6px">·</span>
-              <span th:if="${item.product.status != 'ACTIVE'}" style="color:var(--danger)">✗ 已下架</span>
+              <span th:if="${!#strings.equals(item.product.status, 'ACTIVE')}" style="color:var(--danger)">✗ 已下架</span>
             </div>
-            <div class="meta" th:if="${item.product.status == 'ACTIVE' and item.product.stock >= item.quantity}">
+            <div class="meta" th:if="${#strings.equals(item.product.status, 'ACTIVE') and item.product.stock >= item.quantity}">
               <span style="color:var(--ok)">✓ 库存充足（剩余 <span th:text="${item.product.stock}">0</span> 件）</span>
             </div>
-            <div class="meta" th:if="${item.product.status == 'ACTIVE' and item.product.stock < item.quantity}">
+            <div class="meta" th:if="${#strings.equals(item.product.status, 'ACTIVE') and item.product.stock < item.quantity}">
               <span style="color:var(--danger)">✗ 库存不足（剩余 <span th:text="${item.product.stock}">0</span> 件）</span>
             </div>
           </div>
@@ -106,11 +106,11 @@
         <div class="summary-card">
           <div class="summary-row">
             <span class="label">商品件数</span>
-            <span class="value" th:text="${#lists.size(items)} + ' 件'">0 件</span>
+            <span class="value" th:text="|${#lists.size(items)} 件|">0 件</span>
           </div>
           <div class="summary-row">
             <span class="label">商品总数</span>
-            <span class="value" th:text="${#aggregates.sum(items.![quantity]) + ' 件'">0 件</span>
+            <span class="value" th:text="|${totalQuantity} 件|">0 件</span>
           </div>
           <div class="summary-row total">
             <span class="label">应付总额</span>
