@@ -397,6 +397,39 @@
 
 ---
 
+### 修复 #010: 多个页面左上角 brand 标题与页面功能不匹配
+
+**修复时间**: 2026-06-09
+
+**问题描述**:
+- 数据看板页面左上角 brand 标题显示为"产品管理"，与页面实际功能不符
+- 经排查发现多个页面存在同样问题：brand 标题一律显示"产品管理"，未与各自页面的 `<title>` 标签及实际功能保持一致
+
+**根本原因**:
+- 新建页面时直接复制了产品列表页的模板骨架，未将 brand 标题更新为当前页面的名称
+- 缺乏统一规范约束，导致 brand 标题与页面 `<title>` 不一致
+
+**修复方案**:
+- 将所有页面的 brand 标题统一为与该页面 `<title>` 标签一致的名称
+
+**影响文件**:
+
+| 文件路径 | 修改前 brand 标题 | 修改后 brand 标题 |
+|----------|-------------------|-------------------|
+| `frontend/templates/dashboard/index.html` | 产品管理 | 数据看板 |
+| `frontend/templates/products/detail.html` | 产品管理 | 产品详情 |
+| `frontend/templates/cart/list.html` | 产品管理 | 购物车 |
+| `frontend/templates/cart/checkout.html` | 产品管理 | 订单结算 |
+| `frontend/templates/notifications/list.html` | 产品管理 | 通知中心 |
+
+**修复状态**: ✅ 已完成
+
+**验证结果**:
+- 所有 12 个模板页面的 brand 标题已与 `<title>` 标签保持一致
+- 代码诊断无错误
+
+---
+
 ## 修复登记模板
 
 > 后续修复请复制以下模板并填写：
