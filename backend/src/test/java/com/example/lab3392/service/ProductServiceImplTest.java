@@ -59,14 +59,14 @@ class ProductServiceImplTest extends DbTestSupport {
     @Test
     void create_update_delete_work() {
         ProductForm form = new ProductForm(null, testCategoryId, "Quantum Mouse", "desc", new BigDecimal("259.00"), 80, "ACTIVE");
-        productService.create(form);
+        productService.create(form, null);
 
         Product created = productMapper.selectOne(new LambdaQueryWrapper<Product>().eq(Product::getName, "Quantum Mouse"));
         assertThat(created).isNotNull();
         assertThat(created.getPrice()).isEqualByComparingTo("259.00");
         assertThat(created.getCategoryId()).isEqualTo(testCategoryId);
 
-        productService.update(created.getId(), new ProductForm(created.getId(), testCategoryId, "Quantum Mouse X", "d2", new BigDecimal("299.00"), 81, "INACTIVE"));
+        productService.update(created.getId(), new ProductForm(created.getId(), testCategoryId, "Quantum Mouse X", "d2", new BigDecimal("299.00"), 81, "INACTIVE"), null);
         Product updated = productMapper.selectById(created.getId());
         assertThat(updated.getName()).isEqualTo("Quantum Mouse X");
         assertThat(updated.getStatus()).isEqualTo("INACTIVE");
@@ -85,7 +85,7 @@ class ProductServiceImplTest extends DbTestSupport {
         categoryMapper.insert(inactive);
 
         ProductForm form = new ProductForm(null, inactive.getId(), "Test Product", "desc", new BigDecimal("100.00"), 10, "ACTIVE");
-        assertThatThrownBy(() -> productService.create(form))
+        assertThatThrownBy(() -> productService.create(form, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("分类已停用");
     }

@@ -11,6 +11,7 @@ import com.example.lab3392.entity.ProductCategory;
 import com.example.lab3392.mapper.ProductCategoryMapper;
 import com.example.lab3392.mapper.ProductMapper;
 import com.example.lab3392.service.CacheService;
+import com.example.lab3392.service.FileStorageService;
 import com.example.lab3392.service.NotificationService;
 import com.example.lab3392.service.ProductCategoryService;
 import com.example.lab3392.service.ProductService;
@@ -38,6 +39,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -46,17 +48,19 @@ public class ProductServiceImpl implements ProductService {
     private final ProductCategoryService categoryService;
     private final CacheService cacheService;
     private final NotificationService notificationService;
+    private final FileStorageService fileStorageService;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final String[] CSV_HEADERS = {"名称", "分类", "描述", "价格", "库存", "状态", "创建时间", "更新时间"};
 
     public ProductServiceImpl(ProductMapper productMapper, ProductCategoryMapper categoryMapper,
                               ProductCategoryService categoryService, CacheService cacheService,
-                              NotificationService notificationService) {
+                              NotificationService notificationService, FileStorageService fileStorageService) {
         this.productMapper = productMapper;
         this.categoryMapper = categoryMapper;
         this.categoryService = categoryService;
         this.cacheService = cacheService;
         this.notificationService = notificationService;
+        this.fileStorageService = fileStorageService;
     }
 
     private void populateCategoryNames(List<Product> products) {
@@ -125,12 +129,13 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @CacheEvict(cacheNames = {"productPagesV5", "productPagesV4", "productPagesV3", "productPagesV2", "productPages"}, allEntries = true)
-    public Product create(ProductForm form) {
+    public Product create(ProductForm form, MultipartFile coverImage) {
         validateCategory(form.categoryId());
         Product p = new Product();
         p.setCategoryId(form.categoryId());
         p.setName(form.name().trim());
         p.setDescription(form.description());
+        p.setCoverImage(storeCoverImage(coverImage, null));
         p.setPrice(form.price());
         p.setStock(form.stock());
         p.setStatus(form.status());
@@ -142,7 +147,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @CacheEvict(cacheNames = {"productPagesV5", "productPagesV4", "productPagesV3", "productPagesV2", "productPages"}, allEntries = true)
     @Transactional
-    public void update(Long id, ProductForm form) {
+    public void update(Long id, ProductForm form, MultipartFile coverImage) {
         Product existing = getByIdOrThrow(id);
         Integer oldStock = existing.getStock();
         String oldStatus = existing.getStatus();
@@ -151,6 +156,7 @@ public class ProductServiceImpl implements ProductService {
         existing.setCategoryId(form.categoryId());
         existing.setName(form.name().trim());
         existing.setDescription(form.description());
+        existing.setCoverImage(storeCoverImage(coverImage, existing.getCoverImage()));
         existing.setPrice(form.price());
         existing.setStock(form.stock());
         existing.setStatus(form.status());
@@ -195,6 +201,7 @@ public class ProductServiceImpl implements ProductService {
         Product existing = productMapper.selectById(id);
         if (existing == null) return;
         String productName = existing.getName();
+        fileStorageService.delete(existing.getCoverImage());
         productMapper.deleteById(id);
 
         notificationService.createNotificationsForAllUsers(
@@ -455,5 +462,24 @@ public class ProductServiceImpl implements ProductService {
         LambdaQueryWrapper<Product> w = new LambdaQueryWrapper<>();
         w.eq(Product::getName, name);
         return productMapper.selectOne(w);
+    }
+
+    private String storeCoverImage(MultipartFile coverImage, String oldCoverImage) {
+        if (coverImage == null || coverImage.isEmpty()) {
+            return oldCoverImage;
+        }
+        try {
+            String newFilename = fileStorageService.store(
+                    coverImage.getInputStream(),
+                    coverImage.getOriginalFilename(),
+                    coverImage.getContentType()
+            );
+            if (oldCoverImage != null && !oldCoverImage.isBlank()) {
+                fileStorageService.delete(oldCoverImage);
+            }
+            return newFilename;
+        } catch (IOException e) {
+            throw new RuntimeException("封面图保存失败", e);
+        }
     }
 }

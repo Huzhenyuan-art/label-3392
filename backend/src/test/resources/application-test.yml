@@ -20,3 +20,7 @@ logging:
   level:
     root: WARN
 
+app:
+  upload:
+    dir: ${java.io.tmpdir}/lab3392-test-uploads
+

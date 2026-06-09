@@ -8,6 +8,7 @@ import com.example.lab3392.entity.Product;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface ProductService {
     IPage<Product> search(ProductQuery q, long page, long size);
@@ -16,9 +17,9 @@ public interface ProductService {
 
     Product getByIdWithCategory(Long id);
 
-    Product create(ProductForm form);
+    Product create(ProductForm form, MultipartFile coverImage);
 
-    void update(Long id, ProductForm form);
+    void update(Long id, ProductForm form, MultipartFile coverImage);
 
     void delete(Long id);
 

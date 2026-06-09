@@ -327,6 +327,7 @@ tr:hover td{background:rgba(255,255,255,.62)}
 
 .table-wrap table{table-layout:fixed}
 .col-id{width:84px; max-width:84px}
+.col-cover{width:72px; max-width:72px}
 .col-name{width:420px; max-width:420px}
 .col-code{width:140px; max-width:140px}
 .col-sort{width:90px; max-width:90px}
@@ -919,4 +920,20 @@ body.page-notifications main.container > section.table-card{flex:1 1 auto; min-h
   body.page-notifications .searchbar .actions .btn{
     flex:1;
   }
+}
+
+.thumb{
+  width:48px;
+  height:48px;
+  object-fit:cover;
+  border-radius:8px;
+  border:1px solid var(--stroke);
+  vertical-align:middle;
+}
+.cover-detail{
+  max-width:320px;
+  max-height:240px;
+  border-radius:14px;
+  border:1px solid var(--stroke);
+  object-fit:cover;
 }

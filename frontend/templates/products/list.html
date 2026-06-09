@@ -89,6 +89,7 @@
             <thead>
               <tr>
                 <th class="col-id">ID</th>
+                <th class="col-cover">封面</th>
                 <th class="col-name">名称</th>
                 <th class="col-category">分类</th>
                 <th class="col-price">价格</th>
@@ -101,6 +102,10 @@
             <tbody>
               <tr th:each="p : ${page.records}">
                 <td class="col-id" th:text="${p.id}">1</td>
+                <td class="col-cover">
+                  <img th:if="${p.coverImage != null and !p.coverImage.isEmpty()}" th:src="@{'/product-images/' + ${p.coverImage}}" alt="封面" class="thumb" />
+                  <span th:if="${p.coverImage == null or p.coverImage.isEmpty()}" class="hint">无</span>
+                </td>
                 <td class="col-name">
                   <div class="cell-name">
                     <a class="label link" th:href="@{'/products/' + ${p.id}}" th:text="${p.name}">Name</a>
@@ -127,7 +132,7 @@
                 </td>
               </tr>
               <tr th:if="${page.total == 0}">
-                <td colspan="8" class="hint">暂无数据，尝试调整查询条件。</td>
+                <td colspan="9" class="hint">暂无数据，尝试调整查询条件。</td>
               </tr>
             </tbody>
           </table>

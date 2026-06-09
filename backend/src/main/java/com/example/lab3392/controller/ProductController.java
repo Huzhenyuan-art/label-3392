@@ -5,6 +5,7 @@ import com.example.lab3392.dto.ProductForm;
 import com.example.lab3392.dto.ProductQuery;
 import com.example.lab3392.entity.Product;
 import com.example.lab3392.entity.User;
+import com.example.lab3392.service.FileStorageService;
 import com.example.lab3392.service.OperationLogService;
 import com.example.lab3392.service.ProductCategoryService;
 import com.example.lab3392.service.ProductService;
@@ -15,8 +16,14 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.Principal;
 import java.util.Objects;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -35,13 +42,16 @@ public class ProductController {
     private final ProductCategoryService categoryService;
     private final OperationLogService operationLogService;
     private final UserService userService;
+    private final FileStorageService fileStorageService;
 
     public ProductController(ProductService productService, ProductCategoryService categoryService,
-                             OperationLogService operationLogService, UserService userService) {
+                             OperationLogService operationLogService, UserService userService,
+                             FileStorageService fileStorageService) {
         this.productService = productService;
         this.categoryService = categoryService;
         this.operationLogService = operationLogService;
         this.userService = userService;
+        this.fileStorageService = fileStorageService;
     }
 
     @GetMapping("/products")
@@ -106,21 +116,26 @@ public class ProductController {
         model.addAttribute("form", ProductForm.empty());
         model.addAttribute("categories", categoryService.listAllActive());
         model.addAttribute("returnUrl", returnUrl);
+        model.addAttribute("coverImage", null);
         return "products/form";
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/products")
-    public String create(@Valid @ModelAttribute("form") ProductForm form, BindingResult binding, Model model, RedirectAttributes ra, Principal principal, @RequestParam(required = false) String returnUrl) {
+    public String create(@Valid @ModelAttribute("form") ProductForm form, BindingResult binding,
+                         @RequestParam(value = "coverImage", required = false) MultipartFile coverImage,
+                         Model model, RedirectAttributes ra, Principal principal,
+                         @RequestParam(required = false) String returnUrl) {
         if (binding.hasErrors()) {
             model.addAttribute("mode", "create");
             model.addAttribute("categories", categoryService.listAllActive());
             model.addAttribute("error", binding.getAllErrors().isEmpty() ? "表单校验失败" : binding.getAllErrors().get(0).getDefaultMessage());
             model.addAttribute("returnUrl", returnUrl);
+            model.addAttribute("coverImage", null);
             return "products/form";
         }
         try {
-            Product created = productService.create(form);
+            Product created = productService.create(form, coverImage);
             User operator = getCurrentOperator(principal);
             if (operator != null) {
                 operationLogService.logProductCreate(created, operator.getId(), operator.getUsername());
@@ -130,6 +145,7 @@ public class ProductController {
             model.addAttribute("categories", categoryService.listAllActive());
             model.addAttribute("error", ex.getMessage());
             model.addAttribute("returnUrl", returnUrl);
+            model.addAttribute("coverImage", null);
             return "products/form";
         }
         ra.addFlashAttribute("flashOk", "创建成功");
@@ -144,22 +160,27 @@ public class ProductController {
         model.addAttribute("form", ProductForm.fromEntity(p));
         model.addAttribute("categories", categoryService.listAllActive());
         model.addAttribute("returnUrl", returnUrl);
+        model.addAttribute("coverImage", p.getCoverImage());
         return "products/form";
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/products/{id}")
-    public String update(@PathVariable Long id, @Valid @ModelAttribute("form") ProductForm form, BindingResult binding, Model model, RedirectAttributes ra, Principal principal, @RequestParam(required = false) String returnUrl) {
+    public String update(@PathVariable Long id, @Valid @ModelAttribute("form") ProductForm form, BindingResult binding,
+                         @RequestParam(value = "coverImage", required = false) MultipartFile coverImage,
+                         Model model, RedirectAttributes ra, Principal principal,
+                         @RequestParam(required = false) String returnUrl) {
         if (binding.hasErrors()) {
             model.addAttribute("mode", "edit");
             model.addAttribute("categories", categoryService.listAllActive());
             model.addAttribute("error", binding.getAllErrors().isEmpty() ? "表单校验失败" : binding.getAllErrors().get(0).getDefaultMessage());
             model.addAttribute("returnUrl", returnUrl);
+            model.addAttribute("coverImage", productService.getByIdOrThrow(id).getCoverImage());
             return "products/form";
         }
         try {
             Product before = productService.getByIdOrThrow(id);
-            productService.update(id, form);
+            productService.update(id, form, coverImage);
             Product after = productService.getByIdOrThrow(id);
             User operator = getCurrentOperator(principal);
             if (operator != null) {
@@ -170,6 +191,7 @@ public class ProductController {
             model.addAttribute("categories", categoryService.listAllActive());
             model.addAttribute("error", ex.getMessage());
             model.addAttribute("returnUrl", returnUrl);
+            model.addAttribute("coverImage", productService.getByIdOrThrow(id).getCoverImage());
             return "products/form";
         }
         ra.addFlashAttribute("flashOk", "更新成功");
@@ -192,6 +214,20 @@ public class ProductController {
     private User getCurrentOperator(Principal principal) {
         if (principal == null) return null;
         return userService.findByUsername(principal.getName());
+    }
+
+    @GetMapping("/product-images/{filename}")
+    public ResponseEntity<Resource> serveImage(@PathVariable String filename) throws IOException {
+        Path file = fileStorageService.resolve(filename);
+        if (!Files.exists(file)) {
+            return ResponseEntity.notFound().build();
+        }
+        Resource resource = new UrlResource(file.toUri());
+        String contentType = Files.probeContentType(file);
+        if (contentType == null) contentType = "application/octet-stream";
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .body(resource);
     }
 
     @PreAuthorize("hasRole('ADMIN')")

@@ -42,9 +42,12 @@ services:
       DB_PASSWORD: "123456"
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      UPLOAD_DIR: /app/uploads
       TZ: "UTC"
     ports:
       - "8000:8000"
+    volumes:
+      - upload_data:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -74,3 +77,4 @@ services:
 volumes:
   db_data:
   redis_data:
+  upload_data:

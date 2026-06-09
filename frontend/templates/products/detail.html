@@ -57,6 +57,10 @@
             <div class="kv-k">名称</div>
             <div class="kv-v" th:text="${product.name}">name</div>
           </div>
+          <div class="kv-row" th:if="${product.coverImage != null and !product.coverImage.isEmpty()}">
+            <div class="kv-k">封面图</div>
+            <div class="kv-v"><img th:src="@{'/product-images/' + ${product.coverImage}}" alt="封面" class="cover-detail" /></div>
+          </div>
           <div class="kv-row">
             <div class="kv-k">分类</div>
             <div class="kv-v" th:text="${product.categoryName}">-</div>

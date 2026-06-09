@@ -6,6 +6,10 @@ spring:
     name: lab3392
   thymeleaf:
     cache: true
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 5MB
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:lab3392}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8
@@ -27,4 +31,8 @@ mybatis-plus:
 logging:
   level:
     root: INFO
+
+app:
+  upload:
+    dir: ${UPLOAD_DIR:/app/uploads}
 
