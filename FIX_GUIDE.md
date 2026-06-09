@@ -536,6 +536,70 @@
 
 ---
 
+### 修复 #014: 导航菜单栏各页面显示不一致
+
+**修复时间**: 2026-06-09
+
+**问题描述**:
+- 用户反馈导航菜单栏显示混乱，不同页面显示的菜单项数量和内容不一致
+- 有的页面（如数据看板、购物车列表）显示完整导航，有的页面（如产品详情、订单支付）只显示部分导航
+- 管理员专属链接（用户管理、订单管理、审计日志）在部分页面缺少 `th:if` 权限守卫，导致普通用户也能看到
+- 各页面导航链接文字不统一，同一链接 `/products` 在不同页面分别显示为"产品管理"和"产品列表"
+
+**根本原因**:
+1. 各页面导航栏是独立硬编码的，没有使用 Thymeleaf 片段（fragment）统一管理，导致修改一处时无法同步到所有页面
+2. 新建页面时从不同模板复制骨架，继承了不同的导航项子集，未补齐完整导航
+3. 子页面（详情页、表单页、结算页）为了简化导航，手动删除了部分菜单项，但删除程度不一致
+4. 管理员专属链接的 `th:if="${#authorization.expression('hasRole(''ADMIN'')')}"` 权限守卫在部分页面遗漏
+5. 链接文字没有统一规范，"产品管理"和"产品列表"混用
+
+**修复方案**:
+1. 定义标准导航菜单结构，统一应用到所有页面：
+   - 数据看板 → `/dashboard`
+   - 产品列表 → `/products`
+   - 产品分类 → `/categories`
+   - 购物车 → `/cart`
+   - 我的订单 → `/orders`
+   - 个人中心 → `/profile`
+   - 用户管理 → `/admin/users`（仅 ADMIN，`th:if` 守卫）
+   - 订单管理 → `/admin/orders`（仅 ADMIN，`th:if` 守卫）
+   - 审计日志 → `/operation-logs`（仅 ADMIN，`th:if` 守卫）
+   - 通知 → `/notifications`（含未读数徽章）
+   - 当前用户 pill + 退出表单
+2. 当前页面对应的导航链接添加 `active` 或 `primary` 高亮样式
+3. 子页面（详情/表单）在标准导航之后保留页面专属按钮（如"返回列表"、"编辑"、"删除"）
+4. 统一所有页面中 `/products` 链接的文字为"产品列表"
+5. 为所有管理员专属链接添加 `th:if="${#authorization.expression('hasRole(''ADMIN'')')}"` 权限守卫
+
+**影响文件**:
+
+| 文件路径 | 修改内容 |
+|----------|----------|
+| `frontend/templates/products/detail.html` | 补齐：产品列表、个人中心、用户管理(ADMIN)、订单管理(ADMIN)、审计日志(ADMIN) |
+| `frontend/templates/products/form.html` | 补齐：购物车、我的订单、个人中心、用户管理(ADMIN)、订单管理(ADMIN)、审计日志(ADMIN)、当前用户pill；"产品管理"→"产品列表"；退出表单添加 `th:if` |
+| `frontend/templates/categories/form.html` | 补齐：购物车、我的订单、个人中心、用户管理(ADMIN)、订单管理(ADMIN)、审计日志(ADMIN)、当前用户pill；"产品管理"→"产品列表"；退出表单添加 `th:if` |
+| `frontend/templates/cart/checkout.html` | 补齐：产品分类、个人中心、用户管理(ADMIN)、订单管理(ADMIN)、审计日志(ADMIN) |
+| `frontend/templates/orders/list.html` | 补齐：产品分类、个人中心、用户管理(ADMIN)、订单管理(ADMIN)、审计日志(ADMIN) |
+| `frontend/templates/orders/admin-list.html` | 补齐：购物车、我的订单、个人中心、通知；用户管理和审计日志添加 ADMIN `th:if` 守卫 |
+| `frontend/templates/orders/detail.html` | 补齐：产品分类、个人中心、用户管理(ADMIN)、订单管理(ADMIN)、审计日志(ADMIN)、通知；移除旧的"全部订单"链接（由标准"订单管理"替代） |
+| `frontend/templates/orders/pay.html` | 补齐：产品分类、个人中心、用户管理(ADMIN)、订单管理(ADMIN)、审计日志(ADMIN)、通知 |
+| `frontend/templates/operation-logs/list.html` | 订单管理添加 ADMIN `th:if` 守卫；补齐审计日志当前页链接(active)；"产品管理"→"产品列表" |
+| `frontend/templates/users/list.html` | 用户管理添加 ADMIN `th:if` 守卫并标记 active；订单管理和审计日志添加 ADMIN `th:if` 守卫；"产品管理"→"产品列表" |
+| `frontend/templates/notifications/list.html` | "产品管理"→"产品列表" |
+| `frontend/templates/users/profile.html` | "产品管理"→"产品列表" |
+| `frontend/templates/categories/list.html` | "产品管理"→"产品列表" |
+
+**修复状态**: ✅ 已完成
+
+**验证结果**:
+- 所有页面导航菜单项统一完整，包含全部标准导航链接
+- 管理员专属链接（用户管理、订单管理、审计日志）均有 `th:if` 权限守卫
+- 当前页面导航链接有 `active` 或 `primary` 高亮
+- 所有页面 `/products` 链接文字统一为"产品列表"
+- 子页面保留页面专属操作按钮（返回列表、编辑、删除等）
+
+---
+
 ## 修复登记模板
 
 > 后续修复请复制以下模板并填写：
