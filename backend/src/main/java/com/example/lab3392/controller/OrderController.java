@@ -123,6 +123,7 @@ public class OrderController {
             Order order = orderService.getOrderById(id, userId);
             model.addAttribute("order", order);
             model.addAttribute("username", principal.getName());
+            model.addAttribute("isAdmin", false);
             model.addAttribute("totalQuantity", order.getItems() != null ? order.getItems().stream().mapToInt(OrderItem::getQuantity).sum() : 0);
             return "orders/detail";
         } catch (SecurityException e) {

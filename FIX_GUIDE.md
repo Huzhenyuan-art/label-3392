@@ -503,6 +503,39 @@
 
 ---
 
+### 修复 #013: 订单详情页 isAdmin 未设置导致 500 + 管理员返回列表链接错误
+
+**修复时间**: 2026-06-09
+
+**问题描述**:
+1. 用户在「我的订单」点击「详情」跳转到 `/orders/{id}` 时页面显示 500 Internal Server Error
+2. 管理员从「订单管理」进入订单详情页后，点击「返回列表」跳转到了用户订单页 `/orders` 而非管理员订单页 `/admin/orders`
+
+**根本原因**:
+1. **Bug1 - SpEL 空值转换异常**：`OrderController.orderDetail()` 方法未向 Model 中设置 `isAdmin` 属性，而 `detail.html` 第 106 行 `th:if="${isAdmin and order.username != null}"` 中 SpEL 的 `and` 运算符无法将 null 转为 boolean，抛出 `SpelEvaluationException: EL1001E: Type conversion problem, cannot convert from null to boolean`
+2. **Bug2 - 返回链接硬编码**：`detail.html` 第 144 行 `href="/orders"` 硬编码为用户订单页路径，不区分管理员上下文
+
+**修复方案**:
+1. 在 `OrderController.orderDetail()` 方法中添加 `model.addAttribute("isAdmin", false)` 确保模板中 `isAdmin` 变量始终有值
+2. 将「返回列表」链接改为动态路由：`th:href="${isAdmin} ? '/admin/orders' : '/orders'"`
+
+**影响文件**:
+
+| 文件路径 | 修改内容 |
+|----------|----------|
+| `backend/src/main/java/.../controller/OrderController.java` | `orderDetail()` 方法添加 `model.addAttribute("isAdmin", false)` |
+| `frontend/templates/orders/detail.html` | 将硬编码 `href="/orders"` 改为动态 `th:href="${isAdmin} ? '/admin/orders' : '/orders'"` |
+
+**修复状态**: ✅ 已完成
+
+**验证结果**:
+- 用户访问 `/orders/{id}` 正常渲染订单详情页，不再 500
+- 管理员从 `/admin/orders` 进入详情页后，「返回列表」链接正确指向 `/admin/orders`
+- 用户从 `/orders` 进入详情页后，「返回列表」链接正确指向 `/orders`
+- 导航栏「全部订单」链接仅在管理员上下文中显示
+
+---
+
 ## 修复登记模板
 
 > 后续修复请复制以下模板并填写：
