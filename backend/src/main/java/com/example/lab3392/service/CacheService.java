@@ -42,6 +42,13 @@ public class CacheService {
         evictAllNotificationCaches();
     }
 
+    public void evictProductPagesV3Cache() {
+        var cache = cacheManager.getCache("productPagesV3");
+        if (cache != null) {
+            cache.clear();
+        }
+    }
+
     public void evictAllDashboardCaches() {
         for (String cacheName : DASHBOARD_CACHE_NAMES) {
             var cache = cacheManager.getCache(cacheName);

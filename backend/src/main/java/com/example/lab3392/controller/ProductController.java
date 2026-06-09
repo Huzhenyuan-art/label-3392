@@ -5,6 +5,7 @@ import com.example.lab3392.dto.ProductForm;
 import com.example.lab3392.dto.ProductQuery;
 import com.example.lab3392.entity.Product;
 import com.example.lab3392.entity.User;
+import com.example.lab3392.service.CacheService;
 import com.example.lab3392.service.FileStorageService;
 import com.example.lab3392.service.OperationLogService;
 import com.example.lab3392.service.ProductCategoryService;
@@ -19,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Principal;
+import java.util.Map;
 import java.util.Objects;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -43,15 +45,17 @@ public class ProductController {
     private final OperationLogService operationLogService;
     private final UserService userService;
     private final FileStorageService fileStorageService;
+    private final CacheService cacheService;
 
     public ProductController(ProductService productService, ProductCategoryService categoryService,
                              OperationLogService operationLogService, UserService userService,
-                             FileStorageService fileStorageService) {
+                             FileStorageService fileStorageService, CacheService cacheService) {
         this.productService = productService;
         this.categoryService = categoryService;
         this.operationLogService = operationLogService;
         this.userService = userService;
         this.fileStorageService = fileStorageService;
+        this.cacheService = cacheService;
     }
 
     @GetMapping("/products")
@@ -315,6 +319,14 @@ public class ProductController {
         }
 
         return safeRedirect(returnUrl);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/products/cache/refresh")
+    @org.springframework.web.bind.annotation.ResponseBody
+    public ResponseEntity<Map<String, String>> refreshCache() {
+        cacheService.evictProductPagesV3Cache();
+        return ResponseEntity.ok(Map.of("message", "productPagesV3 缓存已刷新"));
     }
 
     private static String trimToNull(String s) {

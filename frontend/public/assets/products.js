@@ -165,8 +165,46 @@
     });
   }
 
+  function setupCacheRefresh() {
+    const btn = document.getElementById("btnRefreshCache");
+    if (!btn) return;
+
+    btn.addEventListener("click", () => {
+      const csrfToken = document.querySelector('meta[name="_csrf"]');
+      const csrfHeader = document.querySelector('meta[name="_csrf_header"]');
+      if (!csrfToken || !csrfHeader) return;
+
+      const headers = {};
+      headers[csrfHeader.getAttribute("content")] = csrfToken.getAttribute("content");
+
+      btn.disabled = true;
+      btn.textContent = "刷新中...";
+
+      fetch("/products/cache/refresh", { method: "POST", headers: headers })
+        .then((res) => {
+          if (!res.ok) throw new Error("请求失败");
+          return res.json();
+        })
+        .then((data) => {
+          if (window.AppToast && window.AppToast.ok) {
+            window.AppToast.ok(data.message || "缓存已刷新");
+          }
+        })
+        .catch(() => {
+          if (window.AppToast && window.AppToast.bad) {
+            window.AppToast.bad("缓存刷新失败，请重试");
+          }
+        })
+        .finally(() => {
+          btn.disabled = false;
+          btn.textContent = "刷新列表缓存";
+        });
+    });
+  }
+
   window.addEventListener("DOMContentLoaded", () => {
     setupCsvImportExport();
+    setupCacheRefresh();
     highlightNameMatches();
 
     const form = document.querySelector('form.searchbar[action="/products"]');

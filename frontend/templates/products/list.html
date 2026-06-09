@@ -3,6 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
     <title>产品管理</title>
     <link rel="stylesheet" href="/assets/app.css" />
     <script defer src="/assets/app.js"></script>
@@ -81,6 +83,7 @@
             <a class="btn primary" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" th:href="@{/products/new(returnUrl=${returnUrl})}">新增产品</a>
             <button class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" type="button" id="btnExportCsv">导出CSV</button>
             <button class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" type="button" id="btnImportCsv">导入CSV</button>
+            <button class="btn" th:if="${#authorization.expression('hasRole(''ADMIN'')')}" type="button" id="btnRefreshCache">刷新列表缓存</button>
           </div>
         </form>
       </section>
