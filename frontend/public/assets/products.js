@@ -147,8 +147,27 @@
     });
   }
 
+  function highlightNameMatches() {
+    var nameInput = document.querySelector('form.searchbar[action="/products"] input[name="name"]');
+    if (!nameInput) return;
+    var keyword = (nameInput.value || "").trim();
+    if (!keyword) return;
+
+    var cells = document.querySelectorAll('.cell-name .label.link');
+    var escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var re = new RegExp('(' + escaped + ')', 'gi');
+
+    cells.forEach(function(el) {
+      var text = el.textContent || '';
+      if (!re.test(text)) return;
+      re.lastIndex = 0;
+      el.innerHTML = text.replace(re, '<mark>$1</mark>');
+    });
+  }
+
   window.addEventListener("DOMContentLoaded", () => {
     setupCsvImportExport();
+    highlightNameMatches();
 
     const form = document.querySelector('form.searchbar[action="/products"]');
     if (!form) return;

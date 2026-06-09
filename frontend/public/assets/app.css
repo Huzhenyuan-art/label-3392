@@ -357,6 +357,13 @@ td.col-created{
 td.col-actions{overflow:visible}
 
 .cell-name{min-width:0}
+.cell-name mark{
+  background:rgba(37,99,235,.15);
+  color:var(--brand0);
+  border-radius:3px;
+  padding:0 2px;
+  font-weight:600;
+}
 .cell-name .label,
 .cell-name .hint{
   display:block;
