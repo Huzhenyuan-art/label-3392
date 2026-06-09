@@ -121,6 +121,67 @@ class ProductServiceImplTest extends DbTestSupport {
         assertThat(p3.getRecords()).hasSize(1);
     }
 
+    @Test
+    void search_nameOnly_fuzzyMatches() {
+        insertProduct("MacBook Pro 16", new BigDecimal("19999.00"));
+        insertProduct("MacBook Air", new BigDecimal("8999.00"));
+        insertProduct("ThinkPad X1", new BigDecimal("9999.00"));
+
+        IPage<Product> page = productService.search(new ProductQuery("MacBook", null, null), 1, 10);
+        assertThat(page.getTotal()).isEqualTo(2);
+        assertThat(page.getRecords()).extracting(Product::getName)
+                .containsExactlyInAnyOrder("MacBook Pro 16", "MacBook Air");
+    }
+
+    @Test
+    void search_priceOnlyRange_filtersCorrectly() {
+        insertProduct("Cheap", new BigDecimal("50.00"));
+        insertProduct("Mid", new BigDecimal("150.00"));
+        insertProduct("Expensive", new BigDecimal("500.00"));
+
+        IPage<Product> page = productService.search(new ProductQuery(null, new BigDecimal("100.00"), new BigDecimal("300.00")), 1, 10);
+        assertThat(page.getTotal()).isEqualTo(1);
+        assertThat(page.getRecords()).extracting(Product::getName).containsExactly("Mid");
+    }
+
+    @Test
+    void search_nameAndPriceAndPagination_combined() {
+        for (int i = 1; i <= 15; i++) {
+            insertProduct("Pro X" + i, new BigDecimal(String.valueOf(i * 10)));
+        }
+        insertProduct("Basic Z1", new BigDecimal("5.00"));
+
+        IPage<Product> page1 = productService.search(new ProductQuery("Pro", new BigDecimal("50.00"), new BigDecimal("100.00")), 1, 5);
+        assertThat(page1.getTotal()).isEqualTo(6);
+        assertThat(page1.getRecords()).hasSize(5);
+        assertThat(page1.getRecords()).allSatisfy(p -> {
+            assertThat(p.getName()).startsWith("Pro");
+            assertThat(p.getPrice()).isBetween(new BigDecimal("50.00"), new BigDecimal("100.00"));
+        });
+
+        IPage<Product> page2 = productService.search(new ProductQuery("Pro", new BigDecimal("50.00"), new BigDecimal("100.00")), 2, 5);
+        assertThat(page2.getRecords()).hasSize(1);
+    }
+
+    @Test
+    void search_priceRange_minEqualsMax_returnsExactMatch() {
+        insertProduct("Exact", new BigDecimal("100.00"));
+        insertProduct("Other", new BigDecimal("200.00"));
+
+        IPage<Product> page = productService.search(new ProductQuery(null, new BigDecimal("100.00"), new BigDecimal("100.00")), 1, 10);
+        assertThat(page.getTotal()).isEqualTo(1);
+        assertThat(page.getRecords()).extracting(Product::getName).containsExactly("Exact");
+    }
+
+    @Test
+    void getByIdOrThrow_existingId_returnsProduct() {
+        Long id = insertProduct("Exists", new BigDecimal("42.00"));
+        Product found = productService.getByIdOrThrow(id);
+        assertThat(found).isNotNull();
+        assertThat(found.getName()).isEqualTo("Exists");
+        assertThat(found.getPrice()).isEqualByComparingTo("42.00");
+    }
+
     private Long insertProduct(String name, BigDecimal price) {
         Product p = new Product();
         p.setCategoryId(testCategoryId);

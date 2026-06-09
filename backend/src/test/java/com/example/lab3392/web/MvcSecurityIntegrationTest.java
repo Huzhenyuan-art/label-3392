@@ -561,6 +561,165 @@ class MvcSecurityIntegrationTest extends DbTestSupport {
     }
 
     @Test
+    void userRole_forbiddenPostCreateProduct() throws Exception {
+        Role userRole = ensureRole("USER", "普通用户");
+        Long catId = ensureTestCategory();
+
+        User u = new User();
+        u.setUsername("plainuser");
+        u.setEmail("plainuser@example.com");
+        u.setEnabled(1);
+        u.setPasswordHash(passwordEncoder.encode("123456"));
+        userMapper.insert(u);
+        ensureUserRole(u.getId(), userRole.getId());
+
+        MvcResult login = mockMvc.perform(post("/login").with(csrf())
+                        .param("username", "plainuser")
+                        .param("password", "123456"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        MockHttpSession session = (MockHttpSession) login.getRequest().getSession(false);
+        assertThat(session).isNotNull();
+
+        mockMvc.perform(post("/products").session(session).with(csrf())
+                        .param("categoryId", catId.toString())
+                        .param("name", "Should Fail")
+                        .param("description", "desc")
+                        .param("price", "9.99")
+                        .param("stock", "1")
+                        .param("status", "ACTIVE"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void admin_deleteProduct_withCsrf_success() throws Exception {
+        Role admin = ensureRole("ADMIN", "管理员");
+        Role userRole = ensureRole("USER", "普通用户");
+        Long catId = ensureTestCategory();
+
+        User u = new User();
+        u.setUsername("admin_del");
+        u.setEmail("admin_del@example.com");
+        u.setEnabled(1);
+        u.setPasswordHash(passwordEncoder.encode("123456"));
+        userMapper.insert(u);
+        ensureUserRole(u.getId(), admin.getId());
+        ensureUserRole(u.getId(), userRole.getId());
+
+        Product p = new Product();
+        p.setCategoryId(catId);
+        p.setName("ToDelete");
+        p.setDescription("will be deleted");
+        p.setPrice(new BigDecimal("19.99"));
+        p.setStock(5);
+        p.setStatus("ACTIVE");
+        productMapper.insert(p);
+        Long productId = p.getId();
+
+        MvcResult login = mockMvc.perform(post("/login").with(csrf())
+                        .param("username", "admin_del")
+                        .param("password", "123456"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        MockHttpSession session = (MockHttpSession) login.getRequest().getSession(false);
+        assertThat(session).isNotNull();
+
+        mockMvc.perform(post("/products/" + productId + "/delete").session(session).with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/products"));
+
+        assertThat(productMapper.selectById(productId)).isNull();
+    }
+
+    @Test
+    void products_list_minPriceOnly_showsPriceError_pageRevertsTo1() throws Exception {
+        Role admin = ensureRole("ADMIN", "管理员");
+        Role userRole = ensureRole("USER", "普通用户");
+        Long catId = ensureTestCategory();
+
+        User u = new User();
+        u.setUsername("admin_price1");
+        u.setEmail("admin_price1@example.com");
+        u.setEnabled(1);
+        u.setPasswordHash(passwordEncoder.encode("123456"));
+        userMapper.insert(u);
+        ensureUserRole(u.getId(), admin.getId());
+        ensureUserRole(u.getId(), userRole.getId());
+
+        for (int i = 1; i <= 15; i++) {
+            Product p = new Product();
+            p.setCategoryId(catId);
+            p.setName("PItem " + i);
+            p.setPrice(new BigDecimal("10.00"));
+            p.setStock(1);
+            p.setStatus("ACTIVE");
+            productMapper.insert(p);
+        }
+
+        MvcResult login = mockMvc.perform(post("/login").with(csrf())
+                        .param("username", "admin_price1")
+                        .param("password", "123456"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        MockHttpSession session = (MockHttpSession) login.getRequest().getSession(false);
+        assertThat(session).isNotNull();
+
+        MvcResult r = mockMvc.perform(get("/products?minPrice=50&page=3").session(session))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String html = r.getResponse().getContentAsString();
+        assertThat(html).contains("价格区间需同时填写");
+        assertThat(html).contains("当前第 1 /");
+    }
+
+    @Test
+    void products_list_maxPriceOnly_showsPriceError_pageRevertsTo1() throws Exception {
+        Role admin = ensureRole("ADMIN", "管理员");
+        Role userRole = ensureRole("USER", "普通用户");
+        Long catId = ensureTestCategory();
+
+        User u = new User();
+        u.setUsername("admin_price2");
+        u.setEmail("admin_price2@example.com");
+        u.setEnabled(1);
+        u.setPasswordHash(passwordEncoder.encode("123456"));
+        userMapper.insert(u);
+        ensureUserRole(u.getId(), admin.getId());
+        ensureUserRole(u.getId(), userRole.getId());
+
+        for (int i = 1; i <= 15; i++) {
+            Product p = new Product();
+            p.setCategoryId(catId);
+            p.setName("QItem " + i);
+            p.setPrice(new BigDecimal("10.00"));
+            p.setStock(1);
+            p.setStatus("ACTIVE");
+            productMapper.insert(p);
+        }
+
+        MvcResult login = mockMvc.perform(post("/login").with(csrf())
+                        .param("username", "admin_price2")
+                        .param("password", "123456"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        MockHttpSession session = (MockHttpSession) login.getRequest().getSession(false);
+        assertThat(session).isNotNull();
+
+        MvcResult r = mockMvc.perform(get("/products?maxPrice=200&page=5").session(session))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String html = r.getResponse().getContentAsString();
+        assertThat(html).contains("价格区间需同时填写");
+        assertThat(html).contains("当前第 1 /");
+    }
+
+    @Test
     void product_creates_operationLog_recorded() throws Exception {
         Role adminRole = ensureRole("ADMIN", "管理员");
         User u = new User();
